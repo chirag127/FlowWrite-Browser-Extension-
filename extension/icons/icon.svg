@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Circle -->
+  <circle cx="64" cy="64" r="60" fill="#4285F4"/>
+  
+  <!-- Text Cursor -->
+  <rect x="40" y="32" width="4" height="64" fill="white"/>
+  
+  <!-- Text Lines -->
+  <rect x="48" y="40" width="40" height="4" fill="white" opacity="0.9"/>
+  <rect x="48" y="52" width="32" height="4" fill="white" opacity="0.9"/>
+  <rect x="48" y="64" width="36" height="4" fill="white" opacity="0.9"/>
+  
+  <!-- Suggestion Text (Faded) -->
+  <rect x="48" y="76" width="24" height="4" fill="white" opacity="0.9"/>
+  <rect x="76" y="76" width="16" height="4" fill="white" opacity="0.4"/>
+  
+  <!-- Tab Key -->
+  <rect x="76" y="88" width="24" height="12" rx="2" fill="white" opacity="0.7"/>
+  <path d="M84 94L88 98L92 94" stroke="#4285F4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

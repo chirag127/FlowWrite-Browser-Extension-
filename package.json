@@ -1,0 +1,15 @@
+{
+  "name": "flowwrite-browser-extension",
+  "version": "1.0.0",
+  "description": "Real-time AI writing suggestions as you type in web forms and text fields",
+  "main": "index.js",
+  "scripts": {
+    "generate-icons": "node generate-icons.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Chirag Singhal",
+  "license": "MIT",
+  "devDependencies": {
+    "sharp": "^0.32.1"
+  }
+}

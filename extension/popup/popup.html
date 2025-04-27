@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlowWrite</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>FlowWrite</h1>
+      <p>AI writing suggestions</p>
+    </header>
+    
+    <main>
+      <div class="status-section">
+        <div class="status-row">
+          <span>Status:</span>
+          <span id="statusText" class="status-active">Active</span>
+        </div>
+        
+        <div class="status-row">
+          <span>API Key:</span>
+          <span id="apiKeyStatus" class="status-warning">Not set</span>
+        </div>
+      </div>
+      
+      <div class="toggle-section">
+        <label for="isEnabled">Enable FlowWrite</label>
+        <div class="toggle-switch">
+          <input type="checkbox" id="isEnabled" checked>
+          <span class="toggle-slider"></span>
+        </div>
+      </div>
+      
+      <div class="site-section">
+        <div class="site-row">
+          <span>Current site:</span>
+          <span id="currentSite">example.com</span>
+        </div>
+        
+        <button id="toggleSite" class="site-button">Disable for this site</button>
+      </div>
+    </main>
+    
+    <footer>
+      <button id="openOptions" class="footer-button">Options</button>
+    </footer>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
