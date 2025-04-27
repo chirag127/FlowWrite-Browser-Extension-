@@ -1,6 +1,6 @@
 /**
  * FlowWrite Content Script
- * 
+ *
  * This script is injected into web pages to:
  * 1. Detect user typing in text fields
  * 2. Implement debounce mechanism
@@ -27,7 +27,7 @@ let suggestionElement = null;
 let isWaitingForSuggestion = false;
 
 // Backend API URL (should be configurable in production)
-const API_URL = 'http://localhost:3000/api';
+const API_URL = 'http://192.168.31.232:3000/api';
 
 /**
  * Initialize the content script
@@ -42,7 +42,7 @@ function init() {
       if (result.disabledSites) config.disabledSites = result.disabledSites;
       if (result.suggestionDelay) config.suggestionDelay = result.suggestionDelay;
       if (result.presentationMode) config.presentationMode = result.presentationMode;
-      
+
       // Check if the extension is enabled and the current site is not disabled
       if (isExtensionEnabledForSite()) {
         // Add event listeners
@@ -50,7 +50,7 @@ function init() {
       }
     }
   );
-  
+
   // Listen for configuration changes
   chrome.storage.onChanged.addListener((changes, namespace) => {
     if (namespace === 'local') {
@@ -83,10 +83,10 @@ function init() {
  */
 function isExtensionEnabledForSite() {
   if (!config.isEnabled) return false;
-  
+
   const currentHost = window.location.hostname;
-  return !config.disabledSites.some(site => 
-    currentHost === site || 
+  return !config.disabledSites.some(site =>
+    currentHost === site ||
     currentHost.endsWith('.' + site)
   );
 }
@@ -97,10 +97,10 @@ function isExtensionEnabledForSite() {
 function addEventListeners() {
   // Listen for input events on text fields
   document.addEventListener('input', handleInput);
-  
+
   // Listen for keydown events to handle Tab and Esc keys
   document.addEventListener('keydown', handleKeydown);
-  
+
   // Listen for focus events to track the current field
   document.addEventListener('focusin', handleFocusIn);
 }
@@ -112,7 +112,7 @@ function removeEventListeners() {
   document.removeEventListener('input', handleInput);
   document.removeEventListener('keydown', handleKeydown);
   document.removeEventListener('focusin', handleFocusIn);
-  
+
   // Remove any active suggestions
   removeSuggestion();
 }
@@ -124,21 +124,21 @@ function removeEventListeners() {
 function handleInput(event) {
   // Check if the target is a text field
   if (!isTextField(event.target)) return;
-  
+
   // Update the current field
   currentField = event.target;
-  
+
   // Remove any existing suggestion
   removeSuggestion();
-  
+
   // Clear any existing debounce timer
   if (debounceTimer) clearTimeout(debounceTimer);
-  
+
   // Set a new debounce timer
   debounceTimer = setTimeout(() => {
     // Get the context from the field
     const context = getContext(currentField);
-    
+
     // If there's enough context, request a suggestion
     if (context && context.length > 5) {
       requestSuggestion(context);
@@ -153,25 +153,25 @@ function handleInput(event) {
 function handleKeydown(event) {
   // If there's no current suggestion, do nothing
   if (!currentSuggestion) return;
-  
+
   // If Tab is pressed, accept the suggestion
   if (event.key === 'Tab' && !event.shiftKey && !event.ctrlKey && !event.altKey) {
     event.preventDefault();
     acceptSuggestion();
-    
+
     // Send telemetry data
     sendTelemetry(true);
   }
-  
+
   // If Esc is pressed, dismiss the suggestion
   if (event.key === 'Escape') {
     event.preventDefault();
     removeSuggestion();
-    
+
     // Send telemetry data
     sendTelemetry(false);
   }
-  
+
   // If any other key is pressed, remove the suggestion
   if (event.key !== 'Tab' && event.key !== 'Escape') {
     removeSuggestion();
@@ -190,7 +190,7 @@ function handleFocusIn(event) {
     currentField = null;
     return;
   }
-  
+
   // Update the current field
   currentField = event.target;
 }
@@ -203,18 +203,18 @@ function handleFocusIn(event) {
 function isTextField(element) {
   // Check if the element is null
   if (!element) return false;
-  
+
   // Check if the element is an input or textarea
   if (element.tagName === 'INPUT') {
     const type = element.type.toLowerCase();
     return type === 'text' || type === 'search' || type === 'email' || type === 'url';
   }
-  
+
   if (element.tagName === 'TEXTAREA') return true;
-  
+
   // Check if the element is contentEditable
   if (element.isContentEditable) return true;
-  
+
   return false;
 }
 
@@ -225,9 +225,9 @@ function isTextField(element) {
  */
 function getContext(field) {
   if (!field) return '';
-  
+
   let text = '';
-  
+
   // Get text from input or textarea
   if (field.tagName === 'INPUT' || field.tagName === 'TEXTAREA') {
     text = field.value;
@@ -236,7 +236,7 @@ function getContext(field) {
   else if (field.isContentEditable) {
     text = field.textContent;
   }
-  
+
   return text;
 }
 
@@ -250,16 +250,16 @@ function requestSuggestion(context) {
     console.error('FlowWrite: API key not set');
     return;
   }
-  
+
   // Check if we're already waiting for a suggestion
   if (isWaitingForSuggestion) return;
-  
+
   // Set the waiting flag
   isWaitingForSuggestion = true;
-  
+
   // Show loading indicator
   showLoadingIndicator();
-  
+
   // Send the request to the backend
   fetch(`${API_URL}/suggest`, {
     method: 'POST',
@@ -281,7 +281,7 @@ function requestSuggestion(context) {
     .then(data => {
       // Hide loading indicator
       hideLoadingIndicator();
-      
+
       // If there's a suggestion, show it
       if (data.suggestion) {
         currentSuggestion = data.suggestion;
@@ -290,10 +290,10 @@ function requestSuggestion(context) {
     })
     .catch(error => {
       console.error('FlowWrite: Error requesting suggestion:', error);
-      
+
       // Hide loading indicator
       hideLoadingIndicator();
-      
+
       // Show error indicator
       showErrorIndicator();
     })
@@ -310,10 +310,10 @@ function requestSuggestion(context) {
 function showSuggestion(suggestion) {
   // If there's no current field, do nothing
   if (!currentField) return;
-  
+
   // Remove any existing suggestion
   removeSuggestion();
-  
+
   // Choose the presentation mode
   switch (config.presentationMode) {
     case 'inline':
@@ -347,22 +347,22 @@ function showInlineSuggestion(suggestion) {
     suggestionElement.style.pointerEvents = 'none';
     suggestionElement.style.whiteSpace = 'pre';
     suggestionElement.style.zIndex = '9999';
-    
+
     // Position the suggestion after the cursor
     const fieldRect = currentField.getBoundingClientRect();
     const fieldStyle = window.getComputedStyle(currentField);
     const fieldPaddingLeft = parseFloat(fieldStyle.paddingLeft);
     const fieldPaddingTop = parseFloat(fieldStyle.paddingTop);
-    
+
     // Calculate cursor position
     const cursorPosition = getCursorPosition(currentField);
     const textBeforeCursor = currentField.value.substring(0, cursorPosition);
     const textWidth = getTextWidth(textBeforeCursor, fieldStyle.font);
-    
+
     // Position the suggestion
     suggestionElement.style.left = `${fieldRect.left + fieldPaddingLeft + textWidth}px`;
     suggestionElement.style.top = `${fieldRect.top + fieldPaddingTop}px`;
-    
+
     // Add the suggestion to the page
     document.body.appendChild(suggestionElement);
   }
@@ -375,7 +375,7 @@ function showInlineSuggestion(suggestion) {
     suggestionElement.style.color = '#999';
     suggestionElement.style.backgroundColor = 'transparent';
     suggestionElement.style.pointerEvents = 'none';
-    
+
     // Insert the suggestion after the cursor
     const selection = window.getSelection();
     if (selection.rangeCount > 0) {
@@ -402,12 +402,12 @@ function showPopupSuggestion(suggestion) {
   suggestionElement.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.2)';
   suggestionElement.style.zIndex = '9999';
   suggestionElement.style.maxWidth = '300px';
-  
+
   // Position the popup near the cursor
   const fieldRect = currentField.getBoundingClientRect();
   suggestionElement.style.left = `${fieldRect.left}px`;
   suggestionElement.style.top = `${fieldRect.bottom + 5}px`;
-  
+
   // Add the popup to the page
   document.body.appendChild(suggestionElement);
 }
@@ -431,14 +431,14 @@ function showSidePanelSuggestion(suggestion) {
   suggestionElement.style.padding = '16px';
   suggestionElement.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.2)';
   suggestionElement.style.zIndex = '9999';
-  
+
   // Add a header
   const header = document.createElement('div');
   header.textContent = 'FlowWrite Suggestion';
   header.style.fontWeight = 'bold';
   header.style.marginBottom = '8px';
   suggestionElement.prepend(header);
-  
+
   // Add the side panel to the page
   document.body.appendChild(suggestionElement);
 }
@@ -449,20 +449,20 @@ function showSidePanelSuggestion(suggestion) {
 function acceptSuggestion() {
   // If there's no current suggestion or field, do nothing
   if (!currentSuggestion || !currentField) return;
-  
+
   // If the field is an input or textarea
   if (currentField.tagName === 'INPUT' || currentField.tagName === 'TEXTAREA') {
     // Get the cursor position
     const cursorPosition = getCursorPosition(currentField);
-    
+
     // Insert the suggestion at the cursor position
-    const newValue = currentField.value.substring(0, cursorPosition) + 
-                     currentSuggestion + 
+    const newValue = currentField.value.substring(0, cursorPosition) +
+                     currentSuggestion +
                      currentField.value.substring(cursorPosition);
-    
+
     // Update the field value
     currentField.value = newValue;
-    
+
     // Move the cursor to the end of the suggestion
     setCursorPosition(currentField, cursorPosition + currentSuggestion.length);
   }
@@ -476,7 +476,7 @@ function acceptSuggestion() {
       suggestionElement = null;
     }
   }
-  
+
   // Clear the current suggestion
   currentSuggestion = null;
 }
@@ -487,12 +487,12 @@ function acceptSuggestion() {
 function removeSuggestion() {
   // If there's no suggestion element, do nothing
   if (!suggestionElement) return;
-  
+
   // Remove the suggestion element
   if (suggestionElement.parentNode) {
     suggestionElement.parentNode.removeChild(suggestionElement);
   }
-  
+
   // Clear the suggestion element and current suggestion
   suggestionElement = null;
   currentSuggestion = null;
@@ -504,7 +504,7 @@ function removeSuggestion() {
 function showLoadingIndicator() {
   // If there's no current field, do nothing
   if (!currentField) return;
-  
+
   // Create a loading indicator
   const loadingIndicator = document.createElement('div');
   loadingIndicator.className = 'flowwrite-loading';
@@ -516,7 +516,7 @@ function showLoadingIndicator() {
   loadingIndicator.style.borderRadius = '50%';
   loadingIndicator.style.animation = 'flowwrite-spin 1s linear infinite';
   loadingIndicator.style.zIndex = '9999';
-  
+
   // Add the animation
   const style = document.createElement('style');
   style.textContent = `
@@ -526,15 +526,15 @@ function showLoadingIndicator() {
     }
   `;
   document.head.appendChild(style);
-  
+
   // Position the loading indicator
   const fieldRect = currentField.getBoundingClientRect();
   loadingIndicator.style.left = `${fieldRect.right - 24}px`;
   loadingIndicator.style.top = `${fieldRect.top + 4}px`;
-  
+
   // Add the loading indicator to the page
   document.body.appendChild(loadingIndicator);
-  
+
   // Store the loading indicator
   suggestionElement = loadingIndicator;
 }
@@ -553,7 +553,7 @@ function hideLoadingIndicator() {
 function showErrorIndicator() {
   // If there's no current field, do nothing
   if (!currentField) return;
-  
+
   // Create an error indicator
   const errorIndicator = document.createElement('div');
   errorIndicator.className = 'flowwrite-error';
@@ -563,18 +563,18 @@ function showErrorIndicator() {
   errorIndicator.style.backgroundColor = '#e74c3c';
   errorIndicator.style.borderRadius = '50%';
   errorIndicator.style.zIndex = '9999';
-  
+
   // Position the error indicator
   const fieldRect = currentField.getBoundingClientRect();
   errorIndicator.style.left = `${fieldRect.right - 24}px`;
   errorIndicator.style.top = `${fieldRect.top + 4}px`;
-  
+
   // Add the error indicator to the page
   document.body.appendChild(errorIndicator);
-  
+
   // Store the error indicator
   suggestionElement = errorIndicator;
-  
+
   // Remove the error indicator after 3 seconds
   setTimeout(() => {
     if (suggestionElement === errorIndicator) {
@@ -607,11 +607,11 @@ function sendTelemetry(accepted) {
  */
 function getCursorPosition(field) {
   if (!field) return 0;
-  
+
   if (field.selectionStart !== undefined) {
     return field.selectionStart;
   }
-  
+
   return 0;
 }
 
@@ -622,7 +622,7 @@ function getCursorPosition(field) {
  */
 function setCursorPosition(field, position) {
   if (!field) return;
-  
+
   if (field.setSelectionRange) {
     field.focus();
     field.setSelectionRange(position, position);
@@ -639,13 +639,13 @@ function getTextWidth(text, font) {
   // Create a canvas element
   const canvas = document.createElement('canvas');
   const context = canvas.getContext('2d');
-  
+
   // Set the font
   context.font = font;
-  
+
   // Measure the text
   const metrics = context.measureText(text);
-  
+
   return metrics.width;
 }
 
