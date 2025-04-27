@@ -1,98 +1,91 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FlowWrite Options</title>
   <link rel="stylesheet" href="options.css">
 </head>
+
 <body>
   <div class="container">
     <header>
       <h1>FlowWrite Options</h1>
-      <p>Configure your FlowWrite extension settings</p>
+      <p>Configure your AI-powered writing assistant</p>
     </header>
-    
+
     <main>
       <section class="option-section">
         <h2>API Key</h2>
         <div class="option-row">
-          <label for="apiKey">Google Gemini API Key</label>
+          <label for="apiKey">Google Gemini API Key:</label>
           <div class="input-group">
             <input type="password" id="apiKey" placeholder="Enter your API key">
             <button id="toggleApiKey" class="icon-button" title="Show/Hide API Key">👁️</button>
           </div>
         </div>
-        <div class="option-description">
-          <p>
-            Get your API key from 
-            <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio</a>
-          </p>
-          <div id="apiKeyStatus" class="status-message"></div>
-        </div>
+        <p class="help-text">
+          Get your API key from <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio</a>
+        </p>
+        <div id="apiKeyStatus" class="status-message"></div>
       </section>
-      
+
       <section class="option-section">
         <h2>General Settings</h2>
         <div class="option-row">
-          <label for="isEnabled">Enable FlowWrite</label>
+          <label for="isEnabled">Enable FlowWrite:</label>
           <div class="toggle-switch">
-            <input type="checkbox" id="isEnabled" checked>
-            <span class="toggle-slider"></span>
+            <input type="checkbox" id="isEnabled" class="toggle-input" checked>
+            <label for="isEnabled" class="toggle-label"></label>
           </div>
         </div>
-        <div class="option-description">
-          <p>Enable or disable FlowWrite globally</p>
-        </div>
-        
+
         <div class="option-row">
-          <label for="suggestionDelay">Suggestion Delay (ms)</label>
-          <div class="range-container">
+          <label for="suggestionDelay">Suggestion Delay (ms):</label>
+          <div class="slider-container">
             <input type="range" id="suggestionDelay" min="200" max="2000" step="100" value="500">
             <span id="suggestionDelayValue">500 ms</span>
           </div>
         </div>
-        <div class="option-description">
-          <p>How long to wait after you stop typing before showing suggestions</p>
-        </div>
-        
+
         <div class="option-row">
-          <label for="presentationMode">Presentation Style</label>
+          <label for="presentationMode">Presentation Mode:</label>
           <select id="presentationMode">
-            <option value="inline">Inline (after cursor)</option>
+            <option value="inline">Inline (Default)</option>
             <option value="popup">Popup</option>
             <option value="sidepanel">Side Panel</option>
           </select>
         </div>
-        <div class="option-description">
-          <p>How suggestions are displayed</p>
-        </div>
       </section>
-      
+
       <section class="option-section">
         <h2>Site Settings</h2>
         <div class="option-row">
-          <label for="disabledSites">Disabled Sites</label>
-          <textarea id="disabledSites" placeholder="Enter one domain per line, e.g.:&#10;example.com&#10;mail.google.com"></textarea>
+          <label for="disabledSites">Disabled Sites:</label>
+          <textarea id="disabledSites"
+            placeholder="Enter domain names to disable FlowWrite on (one per line)&#10;Example:&#10;example.com&#10;mail.google.com"></textarea>
         </div>
-        <div class="option-description">
-          <p>FlowWrite will be disabled on these sites</p>
-        </div>
+        <p class="help-text">
+          Enter one domain per line. FlowWrite will be disabled on these sites.
+        </p>
       </section>
-      
+
       <section class="option-section actions">
-        <button id="saveOptions" class="primary-button">Save Options</button>
+        <button id="saveOptions" class="primary-button">Save Settings</button>
         <button id="clearOptions" class="secondary-button">Reset to Defaults</button>
       </section>
     </main>
-    
+
     <footer>
-      <p>FlowWrite v1.0.0 | <a href="https://github.com/chirag127/FlowWrite-Browser-Extension-" target="_blank">GitHub</a></p>
+      <p>FlowWrite v1.0.0 | <a href="https://github.com/chirag127/FlowWrite-Browser-Extension-"
+          target="_blank">GitHub</a></p>
     </footer>
   </div>
-  
+
   <div id="toast" class="toast"></div>
-  
+
   <script src="options.js"></script>
 </body>
+
 </html>
