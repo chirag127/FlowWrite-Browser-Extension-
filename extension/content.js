@@ -28,7 +28,8 @@ let suggestionElement = null;
 let isWaitingForSuggestion = false;
 
 // Backend API URL (should be configurable in production)
-const API_URL = "http://192.168.31.232:3000/api";
+// const API_URL = "http://192.168.31.232:3000/api";
+const API_URL = "https://flowwrite-browser-extension.onrender.com/api";
 
 /**
  * Initialize the content script
