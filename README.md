@@ -4,7 +4,11 @@ FlowWrite is a Chrome browser extension that provides real-time, inline AI-power
 
 ![FlowWrite Logo](extension/icons/icon128.png)
 
-## Features
+## 🚀 Live Demo
+
+Visit our [FlowWrite Website](https://chirag127.github.io/FlowWrite-Browser-Extension-/) to learn more about the extension and see it in action.
+
+## ✨ Features
 
 -   **Real-time AI Suggestions**: Get intelligent writing suggestions as you type, triggered by a brief pause.
 -   **Seamless Integration**: Accept suggestions instantly with the 'Tab' key.
@@ -12,15 +16,15 @@ FlowWrite is a Chrome browser extension that provides real-time, inline AI-power
 -   **Privacy-Focused**: Your API key is stored securely in your browser and never on our servers.
 -   **Site-Specific Control**: Enable or disable FlowWrite on specific websites.
 
-## Getting Started
+## 🚀 Getting Started
 
-### Prerequisites
+### 📋 Prerequisites
 
 -   Google Chrome browser
 -   A Google Gemini API key (get one at [Google AI Studio](https://aistudio.google.com/app/apikey))
 -   For development: Node.js and npm
 
-### Installation for Users
+### 💻 Installation for Users
 
 1. Install the extension from the Chrome Web Store (link coming soon)
 2. Click on the FlowWrite icon in your browser toolbar
@@ -28,7 +32,7 @@ FlowWrite is a Chrome browser extension that provides real-time, inline AI-power
 4. Configure your preferences
 5. Start typing in any text field on the web!
 
-### Installation for Developers
+### 🛠️ Installation for Developers
 
 1. Clone the repository:
 
@@ -64,14 +68,14 @@ FlowWrite is a Chrome browser extension that provides real-time, inline AI-power
     npm run dev
     ```
 
-## Usage
+## 🔧 Usage
 
 1. Type in any text field on the web
 2. Pause briefly to see AI-powered suggestions
 3. Press 'Tab' to accept a suggestion or continue typing to ignore it
 4. Press 'Esc' to dismiss a suggestion
 
-## Configuration Options
+## ⚙️ Configuration Options
 
 -   **API Key**: Enter your Google Gemini API key
 -   **Enable/Disable**: Toggle FlowWrite on or off globally
@@ -79,7 +83,7 @@ FlowWrite is a Chrome browser extension that provides real-time, inline AI-power
 -   **Suggestion Delay**: Adjust how long to wait before showing suggestions (200ms-2000ms)
 -   **Presentation Style**: Choose how suggestions appear (inline, popup, or side panel)
 
-## Privacy
+## 🔒 Privacy
 
 FlowWrite takes your privacy seriously:
 
@@ -88,7 +92,7 @@ FlowWrite takes your privacy seriously:
 -   Your text is only sent to Google Gemini API for generating suggestions
 -   No user-identifiable data is collected
 
-## Development
+## 👨‍💻 Development
 
 ### Project Structure
 
@@ -121,6 +125,8 @@ FlowWrite-Browser-Extension/
 │   │   └── db.js               # Database configuration
 │   ├── package.json            # Backend dependencies
 │   └── README.md               # Backend documentation
+├── index.html                  # Landing page for GitHub Pages
+├── privacy-policy.html         # Privacy policy page for GitHub Pages
 ├── package.json                # Root package.json for development tools
 ├── generate-icons.js           # Script to generate PNG icons from SVG
 └── README.md                   # Project documentation
@@ -162,7 +168,7 @@ FlowWrite follows a client-server architecture:
 -   [MongoDB](https://www.mongodb.com/)
 -   [Sharp](https://sharp.pixelplumbing.com/) (for icon generation)
 
-## Contributing
+## 🙌 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
@@ -172,11 +178,11 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## License
+## 🪪 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Acknowledgments
+## 👏 Acknowledgments
 
 -   Inspired by GitHub Copilot
 -   Powered by Google Gemini AI

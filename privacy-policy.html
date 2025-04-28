@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - FlowWrite</title>
+    <link rel="icon" href="extension/icons/icon16.png" type="image/png">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --primary-dark: #2980b9;
+            --secondary-color: #2ecc71;
+            --secondary-dark: #27ae60;
+            --bg-dark: #121212;
+            --bg-card: #1e1e1e;
+            --text-light: #f5f5f5;
+            --text-gray: #aaaaaa;
+            --spacing-sm: 0.5rem;
+            --spacing-md: 1rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 4rem;
+            --border-radius: 8px;
+            --transition: all 0.3s ease;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --max-width: 900px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            line-height: 1.6;
+        }
+
+        a {
+            color: var(--primary-color);
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        a:hover {
+            color: var(--primary-dark);
+        }
+
+        .container {
+            max-width: var(--max-width);
+            margin: 0 auto;
+            padding: 0 var(--spacing-md);
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.8rem 1.5rem;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .btn:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        /* Header */
+        header {
+            padding: var(--spacing-xl) 0;
+            background-color: rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at top right, rgba(52, 152, 219, 0.2), transparent 70%),
+                        radial-gradient(circle at bottom left, rgba(46, 204, 113, 0.2), transparent 70%);
+            z-index: -1;
+        }
+
+        .header-content {
+            text-align: center;
+            position: relative;
+        }
+
+        .back-button {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            position: absolute;
+            top: 0;
+            left: 0;
+            padding: var(--spacing-sm) var(--spacing-md);
+            background-color: rgba(0, 0, 0, 0.3);
+            border-radius: var(--border-radius);
+            transition: var(--transition);
+        }
+
+        .back-button:hover {
+            background-color: rgba(0, 0, 0, 0.5);
+            transform: translateX(-3px);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: var(--spacing-sm);
+            background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .last-updated {
+            font-size: 0.9rem;
+            color: var(--text-gray);
+            margin-bottom: var(--spacing-md);
+        }
+
+        /* Content */
+        .content {
+            padding: var(--spacing-xl) 0;
+        }
+
+        .policy-section {
+            background-color: var(--bg-card);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            margin-bottom: var(--spacing-lg);
+            box-shadow: var(--shadow);
+        }
+
+        .policy-section h2 {
+            color: var(--primary-color);
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-sm);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .policy-section p {
+            margin-bottom: var(--spacing-md);
+        }
+
+        .policy-section ul, .policy-section ol {
+            margin: var(--spacing-md) 0;
+            padding-left: var(--spacing-lg);
+        }
+
+        .policy-section li {
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .highlight {
+            background-color: rgba(46, 204, 113, 0.2);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        /* Footer */
+        footer {
+            padding: var(--spacing-lg) 0;
+            text-align: center;
+            background-color: rgba(0, 0, 0, 0.3);
+        }
+
+        footer a {
+            margin-top: var(--spacing-sm);
+            display: inline-block;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .back-button {
+                position: relative;
+                top: 0;
+                left: 0;
+                justify-content: center;
+                margin-bottom: var(--spacing-md);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <a href="index.html" class="back-button">
+                ← Back to Home
+            </a>
+            <div class="header-content">
+                <h1>Privacy Policy</h1>
+                <p class="last-updated">Last Updated: June 15, 2024</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- Content -->
+    <div class="content">
+        <div class="container">
+            <div class="policy-section">
+                <h2>Introduction</h2>
+                <p>This Privacy Policy explains how FlowWrite ("we", "our", or "us") collects, uses, and protects your information when you use our browser extension. We are committed to ensuring that your privacy is protected and that you understand how your data is used.</p>
+                <p>By using FlowWrite, you agree to the collection and use of information in accordance with this policy. We will not use or share your information with anyone except as described in this Privacy Policy.</p>
+            </div>
+
+            <div class="policy-section">
+                <h2>Required Permissions</h2>
+                <p>FlowWrite requires the following permissions to function properly:</p>
+                <ul>
+                    <li><strong>storage</strong> - This permission is required to save your preferences and settings, such as your API key, enabled/disabled status, and site-specific settings.</li>
+                    <li><strong>activeTab</strong> - This permission allows FlowWrite to interact with the content of the webpage you are currently viewing, specifically to detect text fields and provide suggestions.</li>
+                    <li><strong>scripting</strong> - This permission enables FlowWrite to inject scripts into web pages to detect text fields and provide suggestions as you type.</li>
+                    <li><strong>host permissions</strong> - Access to web pages is necessary for the extension to function across different websites and provide suggestions in text fields.</li>
+                </ul>
+                <p>These permissions are essential for the core functionality of FlowWrite and are used only for the purposes described in this Privacy Policy.</p>
+            </div>
+
+            <div class="policy-section">
+                <h2>Information We Collect</h2>
+                <p>FlowWrite collects the following information:</p>
+                <ul>
+                    <li><strong>User Preferences</strong> - We store your extension settings locally on your device, including your API key, enabled/disabled status, suggestion delay, presentation mode, and list of disabled sites.</li>
+                    <li><strong>Text Context</strong> - When you type in a text field, FlowWrite temporarily processes the text you've entered to generate appropriate suggestions. This text is sent to our backend server and then to the Google Gemini API.</li>
+                    <li><strong>Basic Usage Data</strong> - We collect anonymous usage data, such as whether suggestions were accepted or rejected, to improve the extension's functionality.</li>
+                </ul>
+                <p><strong>What We Do NOT Collect:</strong></p>
+                <ul>
+                    <li>Personal identification information</li>
+                    <li>Your browsing history</li>
+                    <li>Information from websites you visit beyond what's necessary for generating suggestions</li>
+                    <li>Your Google Gemini API key is never stored on our servers</li>
+                </ul>
+            </div>
+
+            <div class="policy-section">
+                <h2>How We Use Your Information</h2>
+                <p>The information we collect is used for the following purposes:</p>
+                <ul>
+                    <li>To provide and maintain the FlowWrite service</li>
+                    <li>To generate relevant writing suggestions</li>
+                    <li>To improve the extension based on usage patterns</li>
+                    <li>To customize the extension according to your preferences</li>
+                </ul>
+                <p><span class="highlight">We do not sell, trade, or otherwise transfer your information to third parties for marketing or advertising purposes.</span></p>
+            </div>
+
+            <div class="policy-section">
+                <h2>Data Storage & Security</h2>
+                <p>Your preferences and settings are stored locally on your device using Chrome's storage API. The text you type is temporarily processed on our backend server and the Google Gemini API to generate suggestions, but is not permanently stored.</p>
+                <p>We implement appropriate security measures to protect against unauthorized access, alteration, disclosure, or destruction of your information. However, no method of transmission over the Internet or electronic storage is 100% secure, and we cannot guarantee absolute security.</p>
+                <p>Your API key is stored securely in your browser using <code>chrome.storage.local</code> and is only used to authenticate requests to the Google Gemini API. We do not have access to your API key unless you explicitly share it with us for troubleshooting purposes.</p>
+            </div>
+
+            <div class="policy-section">
+                <h2>Third-Party Services</h2>
+                <p>FlowWrite uses the following third-party services:</p>
+                <ul>
+                    <li><strong>Google Gemini API</strong> - We use Google's Gemini AI to generate writing suggestions. Your text context is sent to this service. Please refer to <a href="https://policies.google.com/privacy" target="_blank">Google's Privacy Policy</a> for more information on how they handle data.</li>
+                </ul>
+                <p>Your API key for Google Gemini is stored locally on your device and is used to authenticate requests to the Google Gemini API. We do not have access to your API key unless you explicitly share it with us for troubleshooting purposes.</p>
+            </div>
+
+            <div class="policy-section">
+                <h2>User Rights</h2>
+                <p>As a user of FlowWrite, you have the following rights:</p>
+                <ul>
+                    <li>The right to disable the extension at any time</li>
+                    <li>The right to disable the extension on specific websites</li>
+                    <li>The right to clear your stored preferences by resetting the extension</li>
+                    <li>The right to uninstall the extension, which will remove all locally stored data</li>
+                </ul>
+            </div>
+
+            <div class="policy-section">
+                <h2>Changes to This Privacy Policy</h2>
+                <p>We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last Updated" date.</p>
+                <p>You are advised to review this Privacy Policy periodically for any changes. Changes to this Privacy Policy are effective when they are posted on this page.</p>
+            </div>
+
+            <div class="policy-section">
+                <h2>Contact Information</h2>
+                <p>If you have any questions or concerns about this Privacy Policy or FlowWrite's data practices, please contact us by:</p>
+                <ul>
+                    <li>Opening an issue on our <a href="https://github.com/chirag127/FlowWrite-Browser-Extension-" target="_blank">GitHub repository</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 FlowWrite. All rights reserved.</p>
+            <a href="index.html">Back to Home</a>
+        </div>
+    </footer>
+</body>
+</html>

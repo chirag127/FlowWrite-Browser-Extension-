@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlowWrite - AI Writing Assistant</title>
+    <link rel="icon" href="icons/icon16.png" type="image/png">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --primary-dark: #2980b9;
+            --secondary-color: #2ecc71;
+            --secondary-dark: #27ae60;
+            --bg-dark: #121212;
+            --bg-card: #1e1e1e;
+            --text-light: #f5f5f5;
+            --text-gray: #aaaaaa;
+            --spacing-sm: 0.5rem;
+            --spacing-md: 1rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 4rem;
+            --border-radius: 8px;
+            --transition: all 0.3s ease;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --max-width: 1200px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            line-height: 1.6;
+        }
+
+        a {
+            color: var(--primary-color);
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        a:hover {
+            color: var(--primary-dark);
+        }
+
+        .container {
+            max-width: var(--max-width);
+            margin: 0 auto;
+            padding: 0 var(--spacing-md);
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.8rem 1.5rem;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .btn:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary-color);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--secondary-dark);
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            border: 2px solid var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .btn-outline:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        /* Header */
+        header {
+            padding: var(--spacing-lg) 0;
+            text-align: center;
+            background-color: rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 2;
+            padding: var(--spacing-xl) 0;
+        }
+
+        .logo {
+            width: 120px;
+            height: 120px;
+            margin-bottom: var(--spacing-md);
+            animation: pulse 2s infinite alternate;
+        }
+
+        @keyframes pulse {
+            from {
+                transform: scale(1);
+            }
+            to {
+                transform: scale(1.05);
+            }
+        }
+
+        .tagline {
+            font-size: 1.2rem;
+            color: var(--text-gray);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .header-buttons {
+            display: flex;
+            justify-content: center;
+            gap: var(--spacing-md);
+            flex-wrap: wrap;
+        }
+
+        /* Sections */
+        section {
+            padding: var(--spacing-xl) 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .section-title {
+            text-align: center;
+            margin-bottom: var(--spacing-lg);
+            position: relative;
+            padding-bottom: var(--spacing-sm);
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 3px;
+            background-color: var(--primary-color);
+        }
+
+        /* About Section */
+        .about-content {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        /* Features Section */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: var(--spacing-lg);
+            margin-top: var(--spacing-lg);
+        }
+
+        .feature-card {
+            background-color: var(--bg-card);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-lg);
+            transition: var(--transition);
+            box-shadow: var(--shadow);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: var(--spacing-md);
+            color: var(--primary-color);
+        }
+
+        .feature-title {
+            margin-bottom: var(--spacing-sm);
+        }
+
+        /* Installation Section */
+        .installation-steps {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .step {
+            margin-bottom: var(--spacing-md);
+            padding: var(--spacing-md);
+            background-color: var(--bg-card);
+            border-radius: var(--border-radius);
+            position: relative;
+        }
+
+        .step-number {
+            position: absolute;
+            top: -15px;
+            left: -15px;
+            width: 30px;
+            height: 30px;
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        /* How to Use Section */
+        .usage-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* Tech Stack Section */
+        .tech-list {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: var(--spacing-md);
+            margin-top: var(--spacing-lg);
+        }
+
+        .tech-item {
+            background-color: var(--bg-card);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+            min-width: 150px;
+            text-align: center;
+            transition: var(--transition);
+        }
+
+        .tech-item:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow);
+        }
+
+        /* Footer */
+        footer {
+            padding: var(--spacing-lg) 0;
+            text-align: center;
+            background-color: rgba(0, 0, 0, 0.2);
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: var(--spacing-md);
+            margin-top: var(--spacing-md);
+            flex-wrap: wrap;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .tech-list {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .tech-item {
+                width: 100%;
+                max-width: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <img src="icons/icon128.png" alt="FlowWrite Logo" class="logo">
+                <h1>FlowWrite</h1>
+                <p class="tagline">Real-time AI writing suggestions as you type</p>
+                <div class="header-buttons">
+                    <a href="https://github.com/chirag127/FlowWrite-Browser-Extension-" class="btn" target="_blank">GitHub Repository</a>
+                    <a href="privacy-policy.html" class="btn btn-outline" target="_blank">Privacy Policy</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- About Section -->
+    <section id="about">
+        <div class="container">
+            <h2 class="section-title">About FlowWrite</h2>
+            <div class="about-content">
+                <p>FlowWrite is a browser extension that provides real-time AI-powered writing suggestions as you type in web forms and text fields. Powered by Google's Gemini AI, FlowWrite helps you write more efficiently, overcome writer's block, and improve your writing quality.</p>
+                <p>Whether you're composing emails, writing social media posts, or filling out forms, FlowWrite is your intelligent writing assistant that works seamlessly across the web.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features">
+        <div class="container">
+            <h2 class="section-title">Key Features</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">✨</div>
+                    <h3 class="feature-title">Real-time Suggestions</h3>
+                    <p>Get intelligent writing suggestions as you type, helping you complete sentences and formulate ideas faster.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🌐</div>
+                    <h3 class="feature-title">Works Everywhere</h3>
+                    <p>FlowWrite works in any text field across the web, including email clients, social media, and messaging platforms.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3 class="feature-title">Keyboard Shortcuts</h3>
+                    <p>Accept suggestions with Tab key and dismiss with Esc key for a seamless writing experience.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔒</div>
+                    <h3 class="feature-title">Privacy-Focused</h3>
+                    <p>Your data is processed securely and never stored permanently. Your privacy is our priority.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎨</div>
+                    <h3 class="feature-title">Multiple Display Modes</h3>
+                    <p>Choose between inline, popup, or side panel suggestion displays based on your preference.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚙️</div>
+                    <h3 class="feature-title">Customizable</h3>
+                    <p>Adjust suggestion delay, disable on specific sites, and customize other settings to suit your workflow.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Installation Section -->
+    <section id="installation">
+        <div class="container">
+            <h2 class="section-title">Installation Instructions</h2>
+            <div class="installation-steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <h3>Download the Extension</h3>
+                    <p>Clone or download the repository from <a href="https://github.com/chirag127/FlowWrite-Browser-Extension-" target="_blank">GitHub</a>.</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <h3>Open Chrome Extensions Page</h3>
+                    <p>Navigate to <code>chrome://extensions/</code> in your Chrome browser.</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <h3>Enable Developer Mode</h3>
+                    <p>Toggle on "Developer mode" in the top-right corner of the extensions page.</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <h3>Load Unpacked Extension</h3>
+                    <p>Click "Load unpacked" and select the "extension" folder from the downloaded repository.</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">5</div>
+                    <h3>Configure API Key</h3>
+                    <p>Click on the FlowWrite extension icon, go to options, and enter your Google Gemini API key.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How to Use Section -->
+    <section id="usage">
+        <div class="container">
+            <h2 class="section-title">How to Use</h2>
+            <div class="usage-content">
+                <p>Using FlowWrite is simple and intuitive:</p>
+                <ol>
+                    <li><strong>Start typing</strong> in any text field on the web.</li>
+                    <li><strong>Wait briefly</strong> for the AI to generate a suggestion (customizable delay).</li>
+                    <li><strong>Press Tab</strong> to accept the suggestion or <strong>Esc</strong> to dismiss it.</li>
+                    <li><strong>Continue writing</strong> and FlowWrite will provide more suggestions as you type.</li>
+                </ol>
+                <p>You can customize FlowWrite's behavior through the options page, accessible by right-clicking the extension icon and selecting "Options".</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Tech Stack Section -->
+    <section id="tech">
+        <div class="container">
+            <h2 class="section-title">Technology Stack</h2>
+            <div class="tech-list">
+                <div class="tech-item">
+                    <h3>JavaScript</h3>
+                </div>
+                <div class="tech-item">
+                    <h3>Chrome Extension API</h3>
+                </div>
+                <div class="tech-item">
+                    <h3>Google Gemini AI</h3>
+                </div>
+                <div class="tech-item">
+                    <h3>Node.js Backend</h3>
+                </div>
+                <div class="tech-item">
+                    <h3>Express.js</h3>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <p>&copy; 2023 FlowWrite. All rights reserved.</p>
+            <div class="footer-links">
+                <a href="privacy-policy.html" target="_blank">Privacy Policy</a>
+                <a href="https://github.com/chirag127/FlowWrite-Browser-Extension-" target="_blank">GitHub Repository</a>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
