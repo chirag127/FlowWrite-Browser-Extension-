@@ -1,0 +1,25 @@
+/**
+ * Styles for the suggestion overlay
+ */
+
+.ghosttyper-suggestion-overlay {
+  position: absolute;
+  z-index: 9999;
+  pointer-events: none;
+  color: #888;
+  font-family: inherit;
+  font-size: inherit;
+  white-space: pre;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+/* Add a subtle animation for the suggestion appearance */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 0.7; }
+}
+
+.ghosttyper-suggestion-overlay.visible {
+  animation: fadeIn 0.3s ease forwards;
+}
