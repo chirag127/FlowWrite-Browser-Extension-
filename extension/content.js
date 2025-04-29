@@ -164,14 +164,31 @@ function handleInput(event) {
     // Update the current field
     currentField = event.target;
 
-    // Remove any existing suggestion
+    // Immediately remove any existing suggestion
+    // This is critical to prevent ghost text from lingering when the user types
     removeSuggestion();
+
+    // Also clear the current suggestion variable to ensure we don't have stale data
+    currentSuggestion = null;
 
     // Clear any existing debounce timer
     if (debounceTimer) clearTimeout(debounceTimer);
 
+    // If there's an in-flight request, abort it
+    if (suggestionAbortController) {
+        suggestionAbortController.abort();
+        suggestionAbortController = null;
+        debugLog("Aborted in-flight request due to new input");
+    }
+
     // Set a new debounce timer
     debounceTimer = setTimeout(() => {
+        // Double-check that we still have the current field
+        if (!currentField) {
+            debugLog("Current field lost, not requesting suggestion");
+            return;
+        }
+
         // Get the context from the field
         const context = getContext(currentField);
 
@@ -200,8 +217,20 @@ function handleInput(event) {
  * @param {KeyboardEvent} event - The keydown event
  */
 function handleKeydown(event) {
-    // If there's no current suggestion, do nothing
-    if (!currentSuggestion) return;
+    // If there's no current suggestion, check if we need to clean up any lingering ghost text
+    if (!currentSuggestion) {
+        // Check if there are any suggestion elements that need to be removed
+        const allSuggestions = document.querySelectorAll(
+            ".flowwrite-suggestion, .flowwrite-suggestion-popup, .flowwrite-suggestion-sidepanel"
+        );
+        if (allSuggestions.length > 0) {
+            debugLog("Found lingering ghost text elements, removing", {
+                count: allSuggestions.length,
+            });
+            removeSuggestion();
+        }
+        return;
+    }
 
     // If Tab is pressed, accept the suggestion
     if (
@@ -218,7 +247,7 @@ function handleKeydown(event) {
     }
 
     // If Esc is pressed, dismiss the suggestion
-    if (event.key === "Escape") {
+    else if (event.key === "Escape") {
         event.preventDefault();
         removeSuggestion();
 
@@ -227,8 +256,16 @@ function handleKeydown(event) {
     }
 
     // If any other key is pressed, remove the suggestion
-    if (event.key !== "Tab" && event.key !== "Escape") {
+    else if (event.key !== "Tab" && event.key !== "Escape") {
+        debugLog("Key pressed, removing suggestion", { key: event.key });
         removeSuggestion();
+
+        // Also abort any in-flight requests
+        if (suggestionAbortController) {
+            suggestionAbortController.abort();
+            suggestionAbortController = null;
+            debugLog("Aborted in-flight request due to keypress");
+        }
     }
 }
 
@@ -561,6 +598,21 @@ function showSuggestion(suggestion) {
     // This is critical to prevent ghost text from previous suggestions from lingering
     removeSuggestion();
 
+    // Ensure the cursor is in the right position before showing the suggestion
+    // This is especially important for contentEditable elements
+    if (currentField.isContentEditable) {
+        // For contentEditable elements, ensure we have focus
+        currentField.focus();
+    } else if (
+        currentField.tagName === "INPUT" ||
+        currentField.tagName === "TEXTAREA"
+    ) {
+        // For input/textarea elements, ensure we have focus and the cursor is at the right position
+        const cursorPosition = getCursorPosition(currentField);
+        currentField.focus();
+        setCursorPosition(currentField, cursorPosition);
+    }
+
     // Choose the presentation mode
     switch (config.presentationMode) {
         case "inline":
@@ -580,6 +632,9 @@ function showSuggestion(suggestion) {
         mode: config.presentationMode,
         suggestionLength: suggestion.length,
         requestId: currentRequestId,
+        fieldType:
+            currentField.tagName ||
+            (currentField.isContentEditable ? "contentEditable" : "unknown"),
     });
 }
 
@@ -616,13 +671,40 @@ function showInlineSuggestion(suggestion) {
             0,
             cursorPosition
         );
+
+        // Get the width of the text before the cursor
         const textWidth = getTextWidth(textBeforeCursor, fieldStyle.font);
 
-        // Position the suggestion
+        // Get line height for proper vertical alignment
+        const lineHeight =
+            parseFloat(fieldStyle.lineHeight) ||
+            parseFloat(fieldStyle.fontSize) * 1.2;
+
+        // Calculate font metrics for better vertical alignment
+        const fontSizeInPx = parseFloat(fieldStyle.fontSize);
+
+        // Position the suggestion - ensure it's exactly at the cursor position
         suggestionElement.style.left = `${
             fieldRect.left + fieldPaddingLeft + textWidth
         }px`;
-        suggestionElement.style.top = `${fieldRect.top + fieldPaddingTop}px`;
+
+        // Adjust vertical position to align with text baseline
+        suggestionElement.style.top = `${
+            fieldRect.top + fieldPaddingTop + (lineHeight - fontSizeInPx) / 2
+        }px`;
+
+        // Match the font properties exactly
+        suggestionElement.style.fontFamily = fieldStyle.fontFamily;
+        suggestionElement.style.fontSize = fieldStyle.fontSize;
+        suggestionElement.style.fontWeight = fieldStyle.fontWeight;
+        suggestionElement.style.lineHeight = fieldStyle.lineHeight;
+
+        debugLog("Positioned suggestion for input/textarea", {
+            cursorPosition: cursorPosition,
+            textWidth: textWidth,
+            left: fieldRect.left + fieldPaddingLeft + textWidth,
+            top: fieldRect.top + fieldPaddingTop,
+        });
 
         // Add the suggestion to the page
         document.body.appendChild(suggestionElement);
@@ -636,12 +718,42 @@ function showInlineSuggestion(suggestion) {
         suggestionElement.style.color = "#999";
         suggestionElement.style.backgroundColor = "transparent";
         suggestionElement.style.pointerEvents = "none";
+        suggestionElement.style.display = "inline"; // Ensure inline display
+        suggestionElement.style.whiteSpace = "pre"; // Preserve whitespace
+
+        // Get computed style of the field to match font properties
+        const fieldStyle = window.getComputedStyle(currentField);
+        suggestionElement.style.fontFamily = fieldStyle.fontFamily;
+        suggestionElement.style.fontSize = fieldStyle.fontSize;
+        suggestionElement.style.fontWeight = fieldStyle.fontWeight;
+        suggestionElement.style.lineHeight = fieldStyle.lineHeight;
 
         // Insert the suggestion after the cursor
         const selection = window.getSelection();
         if (selection.rangeCount > 0) {
-            const range = selection.getRangeAt(0);
+            // Store the original selection to restore it later
+            const originalRange = selection.getRangeAt(0).cloneRange();
+
+            // Create a new range at the cursor position
+            const range = originalRange.cloneRange();
+
+            // Ensure we're at the exact cursor position
+            range.collapse(false); // Collapse to the end point (cursor position)
+
+            // Insert the suggestion at the cursor position
             range.insertNode(suggestionElement);
+
+            // Move the cursor back to where it was before inserting the suggestion
+            // This ensures the cursor stays where it was and the suggestion appears after it
+            selection.removeAllRanges();
+            selection.addRange(originalRange);
+
+            debugLog("Positioned suggestion in contentEditable", {
+                cursorPosition: "at cursor",
+                suggestionElement:
+                    suggestionElement.textContent.substring(0, 20) +
+                    (suggestionElement.textContent.length > 20 ? "..." : ""),
+            });
         }
     }
 }
@@ -770,12 +882,17 @@ function acceptSuggestion() {
             const selection = window.getSelection();
             if (selection.rangeCount > 0) {
                 const range = selection.getRangeAt(0);
+
+                // Ensure we're at the cursor position
+                range.collapse(false); // Collapse to the end point (cursor position)
+
                 const textNode = document.createTextNode(currentSuggestion);
                 range.insertNode(textNode);
 
-                // Move cursor to end of inserted text
-                range.setStartAfter(textNode);
-                range.setEndAfter(textNode);
+                // Move cursor to before the inserted text
+                // This ensures the cursor stays where it was and the suggestion appears after it
+                range.setStartBefore(textNode);
+                range.setEndBefore(textNode);
                 selection.removeAllRanges();
                 selection.addRange(range);
 
@@ -799,12 +916,17 @@ function acceptSuggestion() {
             const selection = window.getSelection();
             if (selection.rangeCount > 0) {
                 const range = selection.getRangeAt(0);
+
+                // Ensure we're at the cursor position
+                range.collapse(false); // Collapse to the end point (cursor position)
+
                 const textNode = document.createTextNode(currentSuggestion);
                 range.insertNode(textNode);
 
-                // Move cursor to end of inserted text
-                range.setStartAfter(textNode);
-                range.setEndAfter(textNode);
+                // Move cursor to before the inserted text
+                // This ensures the cursor stays where it was and the suggestion appears after it
+                range.setStartBefore(textNode);
+                range.setEndBefore(textNode);
                 selection.removeAllRanges();
                 selection.addRange(range);
 
@@ -843,12 +965,17 @@ function acceptSuggestion() {
             const selection = window.getSelection();
             if (selection.rangeCount > 0) {
                 const range = selection.getRangeAt(0);
+
+                // Ensure we're at the cursor position
+                range.collapse(false); // Collapse to the end point (cursor position)
+
                 const textNode = document.createTextNode(currentSuggestion);
                 range.insertNode(textNode);
 
-                // Move cursor to end of inserted text
-                range.setStartAfter(textNode);
-                range.setEndAfter(textNode);
+                // Move cursor to before the inserted text
+                // This ensures the cursor stays where it was and the suggestion appears after it
+                range.setStartBefore(textNode);
+                range.setEndBefore(textNode);
                 selection.removeAllRanges();
                 selection.addRange(range);
 
@@ -881,6 +1008,20 @@ function removeSuggestion() {
     // Clear the suggestion element and current suggestion
     suggestionElement = null;
     currentSuggestion = null;
+
+    // Find and remove any other suggestion elements that might be lingering
+    // This ensures we don't have multiple ghost texts appearing
+    const allSuggestions = document.querySelectorAll(
+        ".flowwrite-suggestion, .flowwrite-suggestion-popup, .flowwrite-suggestion-sidepanel"
+    );
+    allSuggestions.forEach((element) => {
+        if (element.parentNode) {
+            element.parentNode.removeChild(element);
+            debugLog("Removed additional ghost text element", {
+                className: element.className,
+            });
+        }
+    });
 }
 
 /**
