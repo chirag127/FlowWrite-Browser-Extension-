@@ -53,7 +53,7 @@ router.post("/suggest", async (req, res) => {
                 parts: [
                     {
                         text: `**Role:** You are an AI inline writing assistant, like GitHub Copilot for general text.
-**Goal:** Predict the most likely and helpful text continuation based on the user's input. The suggestion should be concise (max 1-2 short sentences), contextually relevant, and natural-sounding.
+**Goal:** Predict the most likely and helpful text continuation based on the user's input. The suggestion should be contextually relevant, and natural-sounding.
 **Context:** This suggestion will appear inline in real-time as the user types in any web text field (email, chat, form, etc.). The user accepts it by pressing the **Tab** key.
 **Output Requirements:**
 *   Return *only* the raw predicted text continuation.
