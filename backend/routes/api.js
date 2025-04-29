@@ -57,20 +57,16 @@ router.post("/suggest", async (req, res) => {
                 ],
             },
         ];
-
-        // Generate content using the Gemini API
-        const response = await ai.models.generateContentStream({
+        
+        // Generate content using the Gemini API without streaming
+        const response = await ai.models.generateContent({
             model,
             contents,
             config,
         });
 
         // Collect the response chunks
-        let suggestion = "";
-        for await (const chunk of response) {
-            suggestion += chunk.text || "";
-        }
-        console.log(suggestion);
+        let suggestion = response.text || ""; // Fallback to empty string if no text is returned
 
         // Return the suggestion
         return res.json({ suggestion });
