@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GhostTyper Settings</title>
+  <link rel="stylesheet" href="styles/popup.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>GhostTyper</h1>
+      <p class="subtitle">Keyboard Ghostwriter</p>
+    </header>
+
+    <section class="settings">
+      <div class="setting-item">
+        <label class="toggle-label">
+          <span>Enable GhostTyper</span>
+          <div class="toggle-switch">
+            <input type="checkbox" id="enable-toggle" checked>
+            <span class="toggle-slider"></span>
+          </div>
+        </label>
+      </div>
+
+      <div class="setting-item">
+        <label for="tone-preference">Tone Preference:</label>
+        <select id="tone-preference">
+          <option value="auto">Auto (Based on samples)</option>
+          <option value="casual">Casual</option>
+          <option value="professional">Professional</option>
+          <option value="friendly">Friendly</option>
+          <option value="formal">Formal</option>
+        </select>
+      </div>
+
+      <div class="setting-item">
+        <label for="suggestion-delay">Suggestion Delay (ms):</label>
+        <input type="range" id="suggestion-delay" min="100" max="1000" step="100" value="300">
+        <span id="delay-value">300</span>
+      </div>
+    </section>
+
+    <section class="writing-samples">
+      <h2>Writing Samples</h2>
+      <p class="description">Upload writing samples to help GhostTyper match your tone.</p>
+      
+      <div class="sample-upload">
+        <textarea id="sample-text" placeholder="Paste your writing sample here..."></textarea>
+        <div class="upload-actions">
+          <button id="upload-sample" class="primary-button">Upload Sample</button>
+          <div class="file-upload">
+            <input type="file" id="file-upload" accept=".txt">
+            <label for="file-upload">Or Upload File</label>
+          </div>
+        </div>
+      </div>
+      
+      <div id="upload-status" class="status-message"></div>
+    </section>
+
+    <section class="data-management">
+      <h2>Data Management</h2>
+      <button id="clear-data" class="secondary-button">Clear Stored Data</button>
+      <p class="data-note">This will remove all your writing samples and tone preferences.</p>
+    </section>
+
+    <footer>
+      <p>GhostTyper v1.0.0</p>
+    </footer>
+  </div>
+
+  <script src="lib/webextension-polyfill.min.js"></script>
+  <script src="env.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
