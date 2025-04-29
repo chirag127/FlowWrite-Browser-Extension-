@@ -47,7 +47,9 @@ function init() {
             "debugMode",
         ],
         (result) => {
-            if (result.apiKey) config.apiKey = result.apiKey;
+            if (result.apiKey) {
+              config.apiKey = result.apiKey;
+            }
             if (result.isEnabled !== undefined)
                 config.isEnabled = result.isEnabled;
             if (result.disabledSites)
