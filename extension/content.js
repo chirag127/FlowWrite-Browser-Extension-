@@ -27,6 +27,7 @@ let currentField = null;
 let suggestionElement = null;
 let isWaitingForSuggestion = false;
 let currentRequestId = 0; // Track the most recent request
+let suggestionAbortController = null; // For cancelling in-flight fetch requests
 
 // Backend API URL (should be configurable in production)
 // const API_URL = "http://192.168.31.232:3000/api";
@@ -48,7 +49,7 @@ function init() {
         ],
         (result) => {
             if (result.apiKey) {
-              config.apiKey = result.apiKey;
+                config.apiKey = result.apiKey;
             }
             if (result.isEnabled !== undefined)
                 config.isEnabled = result.isEnabled;
@@ -443,6 +444,15 @@ function requestSuggestion(context) {
     // Set the waiting flag
     isWaitingForSuggestion = true;
 
+    // Cancel any previous suggestion request if exists and create a new AbortController instance
+    if (suggestionAbortController) {
+        suggestionAbortController.abort();
+        debugLog("Aborted previous fetch request", {
+            requestId: requestId - 1,
+        });
+    }
+    suggestionAbortController = new AbortController();
+
     // Send the request to the backend
     fetch(`${API_URL}/suggest`, {
         method: "POST",
@@ -453,6 +463,7 @@ function requestSuggestion(context) {
             context,
             apiKey: config.apiKey,
         }),
+        signal: suggestionAbortController.signal,
     })
         .then((response) => {
             // Check if the response is ok
@@ -495,6 +506,14 @@ function requestSuggestion(context) {
             }
         })
         .catch((error) => {
+            // Check if this is an abort error (request was cancelled)
+            if (error.name === "AbortError") {
+                debugLog("Fetch request was aborted", {
+                    requestId: requestId,
+                });
+                return; // Don't show error for aborted requests
+            }
+
             // Only process this error if it's from the most recent request
             if (requestId !== currentRequestId) {
                 return;
@@ -503,6 +522,7 @@ function requestSuggestion(context) {
             console.error("FlowWrite: Error requesting suggestion:", error);
             debugLog("Error requesting suggestion", {
                 error: error.message,
+                errorName: error.name,
                 requestId: requestId,
             });
 
@@ -516,6 +536,15 @@ function requestSuggestion(context) {
             // Only reset the waiting flag if this is the most recent request
             if (requestId === currentRequestId) {
                 isWaitingForSuggestion = false;
+
+                // Clear the abort controller reference if this was the most recent request
+                // This helps with garbage collection
+                if (
+                    suggestionAbortController &&
+                    suggestionAbortController.signal.aborted
+                ) {
+                    suggestionAbortController = null;
+                }
             }
         });
 }
