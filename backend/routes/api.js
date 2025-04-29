@@ -52,7 +52,7 @@ router.post("/suggest", async (req, res) => {
                 role: "user",
                 parts: [
                     {
-                        text: `Complete the following text with a natural continuation (1-2 sentences max), only return the continuation, don't include the original text, the original text is: "${context}"`,
+                        text: `Act as an inline writing suggestion tool (like GitHub Copilot for text). Predict a helpful and natural continuation (1-2 sentences max) for the following input, suitable for a real-time suggestion. Return *only* the predicted text continuation, nothing else. Input: "${context}"`,
                     },
                 ],
             },
