@@ -26,6 +26,7 @@ let currentSuggestion = null;
 let currentField = null;
 let suggestionElement = null;
 let isWaitingForSuggestion = false;
+let currentRequestId = 0; // Track the most recent request
 
 // Backend API URL (should be configurable in production)
 // const API_URL = "http://192.168.31.232:3000/api";
@@ -172,10 +173,16 @@ function handleInput(event) {
         const context = getContext(currentField);
 
         // Debug logging
-        debugLog("Context extracted", { context: context });
+        debugLog("Context extracted", {
+            context: context,
+            contextLength: context ? context.length : 0,
+        });
 
         // If there's enough context, request a suggestion
         if (context && context.length > 5) {
+            // Increment the request ID to invalidate any pending requests
+            // This ensures that if multiple requests are triggered in quick succession,
+            // only the most recent one will be processed
             requestSuggestion(context);
         } else {
             debugLog("Context too short, not requesting suggestion", {
@@ -416,20 +423,23 @@ function requestSuggestion(context) {
         return;
     }
 
-    // Check if we're already waiting for a suggestion
-    if (isWaitingForSuggestion) {
-        debugLog("Already waiting for suggestion, ignoring request");
-        return;
-    }
+    // Generate a new request ID for this request
+    const requestId = ++currentRequestId;
 
-    // Set the waiting flag
-    isWaitingForSuggestion = true;
     debugLog("Requesting suggestion from backend", {
         contextLength: context.length,
+        requestId: requestId,
     });
+
+    // Always remove any existing suggestion before showing the loading indicator
+    // This ensures previous ghost text is removed when a new request starts
+    removeSuggestion();
 
     // Show loading indicator
     showLoadingIndicator();
+
+    // Set the waiting flag
+    isWaitingForSuggestion = true;
 
     // Send the request to the backend
     fetch(`${API_URL}/suggest`, {
@@ -447,12 +457,22 @@ function requestSuggestion(context) {
             if (!response.ok) {
                 debugLog("Backend response not OK", {
                     status: response.status,
+                    requestId: requestId,
                 });
                 throw new Error(`HTTP error ${response.status}`);
             }
             return response.json();
         })
         .then((data) => {
+            // Only process this response if it's from the most recent request
+            if (requestId !== currentRequestId) {
+                debugLog("Ignoring outdated suggestion response", {
+                    requestId: requestId,
+                    currentRequestId: currentRequestId,
+                });
+                return;
+            }
+
             // Hide loading indicator
             hideLoadingIndicator();
 
@@ -463,15 +483,26 @@ function requestSuggestion(context) {
                     suggestion:
                         data.suggestion.substring(0, 50) +
                         (data.suggestion.length > 50 ? "..." : ""),
+                    requestId: requestId,
                 });
                 showSuggestion(currentSuggestion);
             } else {
-                debugLog("No suggestion received from backend");
+                debugLog("No suggestion received from backend", {
+                    requestId: requestId,
+                });
             }
         })
         .catch((error) => {
+            // Only process this error if it's from the most recent request
+            if (requestId !== currentRequestId) {
+                return;
+            }
+
             console.error("FlowWrite: Error requesting suggestion:", error);
-            debugLog("Error requesting suggestion", { error: error.message });
+            debugLog("Error requesting suggestion", {
+                error: error.message,
+                requestId: requestId,
+            });
 
             // Hide loading indicator
             hideLoadingIndicator();
@@ -480,8 +511,10 @@ function requestSuggestion(context) {
             showErrorIndicator();
         })
         .finally(() => {
-            // Reset the waiting flag
-            isWaitingForSuggestion = false;
+            // Only reset the waiting flag if this is the most recent request
+            if (requestId === currentRequestId) {
+                isWaitingForSuggestion = false;
+            }
         });
 }
 
@@ -493,7 +526,8 @@ function showSuggestion(suggestion) {
     // If there's no current field, do nothing
     if (!currentField) return;
 
-    // Remove any existing suggestion
+    // Always ensure any existing suggestion is removed first
+    // This is critical to prevent ghost text from previous suggestions from lingering
     removeSuggestion();
 
     // Choose the presentation mode
@@ -510,6 +544,12 @@ function showSuggestion(suggestion) {
         default:
             showInlineSuggestion(suggestion);
     }
+
+    debugLog("Suggestion displayed", {
+        mode: config.presentationMode,
+        suggestionLength: suggestion.length,
+        requestId: currentRequestId,
+    });
 }
 
 /**
