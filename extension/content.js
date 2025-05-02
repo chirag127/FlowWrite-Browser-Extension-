@@ -860,6 +860,15 @@ function acceptSuggestion() {
                 textNode,
                 suggestionElement
             );
+
+            // Position cursor after the inserted text
+            const selection = window.getSelection();
+            const range = document.createRange();
+            range.setStartAfter(textNode);
+            range.setEndAfter(textNode);
+            selection.removeAllRanges();
+            selection.addRange(range);
+
             suggestionElement = null;
 
             // Dispatch input event to trigger any listeners
@@ -889,10 +898,9 @@ function acceptSuggestion() {
                 const textNode = document.createTextNode(currentSuggestion);
                 range.insertNode(textNode);
 
-                // Move cursor to before the inserted text
-                // This ensures the cursor stays where it was and the suggestion appears after it
-                range.setStartBefore(textNode);
-                range.setEndBefore(textNode);
+                // Move cursor after the inserted text
+                range.setStartAfter(textNode);
+                range.setEndAfter(textNode);
                 selection.removeAllRanges();
                 selection.addRange(range);
 
@@ -923,10 +931,9 @@ function acceptSuggestion() {
                 const textNode = document.createTextNode(currentSuggestion);
                 range.insertNode(textNode);
 
-                // Move cursor to before the inserted text
-                // This ensures the cursor stays where it was and the suggestion appears after it
-                range.setStartBefore(textNode);
-                range.setEndBefore(textNode);
+                // Move cursor after the inserted text
+                range.setStartAfter(textNode);
+                range.setEndAfter(textNode);
                 selection.removeAllRanges();
                 selection.addRange(range);
 
@@ -972,10 +979,9 @@ function acceptSuggestion() {
                 const textNode = document.createTextNode(currentSuggestion);
                 range.insertNode(textNode);
 
-                // Move cursor to before the inserted text
-                // This ensures the cursor stays where it was and the suggestion appears after it
-                range.setStartBefore(textNode);
-                range.setEndBefore(textNode);
+                // Move cursor after the inserted text
+                range.setStartAfter(textNode);
+                range.setEndAfter(textNode);
                 selection.removeAllRanges();
                 selection.addRange(range);
 
