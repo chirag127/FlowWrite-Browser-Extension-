@@ -60,6 +60,9 @@ router.post("/suggest", async (req, res) => {
 *   Do *not* include any preamble, labels, explanations, or markdown formatting.
 *   Include a leading space *if and only if* it is grammatically appropriate to follow the provided input text (e.g., if the input doesn't end in a space).
 *   Keep suggestions brief and suitable for quick acceptance via Tab.
+*   Avoid suggestions that are too generic or unrelated to the context.
+*   Avoid excessive verbosity or overly complex sentences.
+*   IMPORTANT: only send the suggestion if you are more confident than 90% that it is correct. If you are not confident, return an empty string.
 *   Avoid excessive repetition of the same word or phrase.
 -   The input text is provided below in the double quotes.
 **Input Text:**
