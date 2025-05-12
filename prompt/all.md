@@ -3,7 +3,6 @@ Implement a context capture feature in the FlowWrite Chrome extension that:
 1. Captures the complete text content from the active input field where the user is typing, including:
    - All text before the cursor position (prefix text)
    - All text after the cursor position (suffix text)
-   - All text of the web page (if applicable)
    - Store these separately to maintain awareness of cursor position
 
 2. Format the captured context according to our established protocol:

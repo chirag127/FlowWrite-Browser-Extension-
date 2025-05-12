@@ -90,6 +90,9 @@ function createDebugOverlay() {
         )}</div>
         <div>Delay: ${config.suggestionDelay}ms</div>
         <div>Mode: ${config.presentationMode}</div>
+        <div>Page Context: ${
+            config.enablePageContext ? "✓ Enabled" : "✗ Disabled"
+        }</div>
         <div>API Key: ${config.apiKey ? "✓ Set" : "✗ Not Set"}</div>
         <div>Current Field: ${
             currentField

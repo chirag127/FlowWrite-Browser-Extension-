@@ -16,6 +16,7 @@ const isEnabledToggle = document.getElementById("isEnabled");
 const suggestionDelaySlider = document.getElementById("suggestionDelay");
 const suggestionDelayValue = document.getElementById("suggestionDelayValue");
 const presentationModeSelect = document.getElementById("presentationMode");
+const enablePageContextToggle = document.getElementById("enablePageContext");
 const debugModeToggle = document.getElementById("debugMode");
 const disabledSitesTextarea = document.getElementById("disabledSites");
 const saveOptionsButton = document.getElementById("saveOptions");
@@ -29,6 +30,7 @@ const DEFAULT_CONFIG = {
     disabledSites: [],
     suggestionDelay: 500,
     presentationMode: "inline",
+    enablePageContext: true,
     debugMode: false,
 };
 
@@ -58,6 +60,7 @@ function loadOptions() {
             "disabledSites",
             "suggestionDelay",
             "presentationMode",
+            "enablePageContext",
             "debugMode",
         ],
         (result) => {
@@ -72,6 +75,12 @@ function loadOptions() {
             updateSuggestionDelayValue();
             presentationModeSelect.value =
                 result.presentationMode || DEFAULT_CONFIG.presentationMode;
+
+            // Set page context toggle
+            enablePageContextToggle.checked =
+                result.enablePageContext !== undefined
+                    ? result.enablePageContext
+                    : DEFAULT_CONFIG.enablePageContext;
 
             // Convert disabledSites array to string
             const disabledSites =
@@ -111,7 +120,8 @@ function saveOptions() {
               .filter((site) => site)
         : [];
 
-    // Get debug mode value
+    // Get page context and debug mode values
+    const enablePageContext = enablePageContextToggle.checked;
     const debugMode = debugModeToggle.checked;
 
     // Create config object
@@ -121,6 +131,7 @@ function saveOptions() {
         disabledSites,
         suggestionDelay,
         presentationMode,
+        enablePageContext,
         debugMode,
     };
 

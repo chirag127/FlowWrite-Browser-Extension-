@@ -17,6 +17,7 @@ let config = {
     disabledSites: [],
     suggestionDelay: 500,
     presentationMode: "inline",
+    enablePageContext: true,
     debugMode: false,
 };
 
@@ -45,6 +46,7 @@ function init() {
             "disabledSites",
             "suggestionDelay",
             "presentationMode",
+            "enablePageContext",
             "debugMode",
         ],
         (result) => {
@@ -59,6 +61,8 @@ function init() {
                 config.suggestionDelay = result.suggestionDelay;
             if (result.presentationMode)
                 config.presentationMode = result.presentationMode;
+            if (result.enablePageContext !== undefined)
+                config.enablePageContext = result.enablePageContext;
             if (result.debugMode !== undefined)
                 config.debugMode = result.debugMode;
 
@@ -101,6 +105,8 @@ function init() {
                 config.suggestionDelay = changes.suggestionDelay.newValue;
             if (changes.presentationMode)
                 config.presentationMode = changes.presentationMode.newValue;
+            if (changes.enablePageContext !== undefined)
+                config.enablePageContext = changes.enablePageContext.newValue;
             if (changes.debugMode !== undefined)
                 config.debugMode = changes.debugMode.newValue;
         }
@@ -452,6 +458,297 @@ function getContext(field) {
 }
 
 /**
+ * Extract page context from the current page
+ * @returns {Object} - The page context object
+ */
+function extractPageContext() {
+    try {
+        // If page context is disabled, return null
+        if (!config.enablePageContext) {
+            debugLog("Page context extraction disabled");
+            return null;
+        }
+
+        debugLog("Extracting page context");
+
+        // Get the page title
+        const pageTitle = document.title || "";
+
+        // Get the page URL
+        const pageUrl = window.location.href || "";
+
+        // Get the meta description
+        const metaDescription =
+            document.querySelector('meta[name="description"]')?.content ||
+            document.querySelector('meta[property="og:description"]')
+                ?.content ||
+            "";
+
+        // Get the input field context (parent container text)
+        let inputFieldContext = "";
+        if (currentField) {
+            // Try to get the parent section or container
+            const parentContainer = findParentContainer(currentField);
+            if (parentContainer) {
+                // Get text content excluding the input field itself
+                inputFieldContext = getContainerText(
+                    parentContainer,
+                    currentField
+                );
+            }
+        }
+
+        // Get relevant section headings
+        const relevantSections = [];
+        if (currentField) {
+            // Find nearby headings
+            const headings = document.querySelectorAll(
+                "h1, h2, h3, h4, h5, h6"
+            );
+            const fieldRect = currentField.getBoundingClientRect();
+
+            // Get headings that are above or near the input field
+            for (const heading of headings) {
+                const headingRect = heading.getBoundingClientRect();
+                // If heading is above or close to the input field
+                if (headingRect.bottom <= fieldRect.bottom + 200) {
+                    relevantSections.push(heading.textContent.trim());
+                }
+            }
+        }
+
+        // Get visible page content
+        let pageContent = "";
+        const visibleTextNodes = getVisibleTextNodes();
+        // Include the full page content without truncation
+        pageContent = visibleTextNodes.join(" ");
+
+        // Create the page context object
+        const pageContext = {
+            pageTitle,
+            pageUrl,
+            pageMeta: metaDescription,
+            inputFieldContext: inputFieldContext.substring(0, 500), // Limit to 500 chars
+            pageContent,
+            relevantSections: relevantSections.slice(0, 5), // Limit to 5 most relevant sections
+        };
+
+        // Limit the total size to 8KB to accommodate larger page content
+        const pageContextString = JSON.stringify(pageContext);
+        if (pageContextString.length > 8192) {
+            debugLog("Page context too large, adjusting", {
+                originalSize: pageContextString.length,
+            });
+
+            // First try to truncate input field context to preserve page content
+            pageContext.inputFieldContext =
+                pageContext.inputFieldContext.substring(0, 200);
+
+            // If still too large, reduce the number of relevant sections
+            const updatedContextString = JSON.stringify(pageContext);
+            if (updatedContextString.length > 8192) {
+                pageContext.relevantSections =
+                    pageContext.relevantSections.slice(0, 3);
+            }
+
+            // As a last resort, if still too large, truncate page content
+            const finalContextString = JSON.stringify(pageContext);
+            if (finalContextString.length > 8192) {
+                const excessBytes = finalContextString.length - 8192;
+                const contentLength = pageContext.pageContent.length;
+                const newContentLength = Math.max(
+                    contentLength - excessBytes - 100,
+                    contentLength / 2
+                );
+
+                debugLog("Truncating page content as last resort", {
+                    originalContentLength: contentLength,
+                    newContentLength: newContentLength,
+                });
+
+                pageContext.pageContent = pageContext.pageContent.substring(
+                    0,
+                    newContentLength
+                );
+            }
+        }
+
+        debugLog("Page context extracted", {
+            contextSize: JSON.stringify(pageContext).length,
+            pageContentSize: pageContext.pageContent.length,
+            inputFieldContextSize: pageContext.inputFieldContext.length,
+            relevantSectionsCount: pageContext.relevantSections.length,
+        });
+
+        return pageContext;
+    } catch (error) {
+        console.error("FlowWrite: Error extracting page context:", error);
+        debugLog("Error extracting page context", { error: error.message });
+        return null;
+    }
+}
+
+/**
+ * Find the parent container of an element
+ * @param {HTMLElement} element - The element
+ * @returns {HTMLElement} - The parent container
+ */
+function findParentContainer(element) {
+    if (!element) return null;
+
+    // Try to find a semantic parent container
+    let parent = element.parentElement;
+    while (parent && parent !== document.body) {
+        // Check if this is a likely container
+        if (
+            parent.tagName === "SECTION" ||
+            parent.tagName === "ARTICLE" ||
+            parent.tagName === "FORM" ||
+            (parent.tagName === "DIV" &&
+                (parent.className.includes("container") ||
+                    parent.className.includes("section") ||
+                    parent.className.includes("form") ||
+                    parent.className.includes("card") ||
+                    parent.className.includes("box") ||
+                    parent.id.includes("container") ||
+                    parent.id.includes("section") ||
+                    parent.id.includes("form")))
+        ) {
+            return parent;
+        }
+        parent = parent.parentElement;
+    }
+
+    // If no semantic container found, return the immediate parent
+    return element.parentElement;
+}
+
+/**
+ * Get text content from a container, excluding the input field
+ * @param {HTMLElement} container - The container
+ * @param {HTMLElement} inputField - The input field to exclude
+ * @returns {string} - The text content
+ */
+function getContainerText(container, inputField) {
+    if (!container) return "";
+
+    // Clone the container to avoid modifying the original
+    const clone = container.cloneNode(true);
+
+    // Find and remove the input field from the clone
+    const inputInClone = findEquivalentElement(clone, inputField);
+    if (inputInClone) {
+        inputInClone.remove();
+    }
+
+    // Get all text nodes
+    const textNodes = [];
+    const walker = document.createTreeWalker(
+        clone,
+        NodeFilter.SHOW_TEXT,
+        null,
+        false
+    );
+
+    let node;
+    while ((node = walker.nextNode())) {
+        const text = node.textContent.trim();
+        if (text) {
+            textNodes.push(text);
+        }
+    }
+
+    return textNodes.join(" ");
+}
+
+/**
+ * Find the equivalent element in a cloned node
+ * @param {HTMLElement} clonedParent - The cloned parent
+ * @param {HTMLElement} originalElement - The original element
+ * @returns {HTMLElement} - The equivalent element in the clone
+ */
+function findEquivalentElement(clonedParent, originalElement) {
+    // Try to find by ID first
+    if (originalElement.id) {
+        const byId = clonedParent.querySelector(`#${originalElement.id}`);
+        if (byId) return byId;
+    }
+
+    // Try to find by class and tag
+    const className = originalElement.className;
+    const tagName = originalElement.tagName;
+
+    if (className && tagName) {
+        // Convert className to a selector-friendly format
+        const classSelector = className
+            .split(" ")
+            .filter((c) => c)
+            .map((c) => `.${c}`)
+            .join("");
+
+        if (classSelector) {
+            const byClassAndTag = clonedParent.querySelector(
+                `${tagName}${classSelector}`
+            );
+            if (byClassAndTag) return byClassAndTag;
+        }
+    }
+
+    // Fallback: try to find by tag and position
+    if (tagName) {
+        const elements = clonedParent.querySelectorAll(tagName);
+        // This is a simplistic approach that might not always work
+        for (const element of elements) {
+            if (element.textContent === originalElement.textContent) {
+                return element;
+            }
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Get visible text nodes from the page
+ * @returns {string[]} - Array of visible text content
+ */
+function getVisibleTextNodes() {
+    const textNodes = [];
+
+    // Get all headings, paragraphs, and list items
+    const elements = document.querySelectorAll(
+        "h1, h2, h3, h4, h5, h6, p, li, label, span"
+    );
+
+    for (const element of elements) {
+        // Check if the element is visible
+        const style = window.getComputedStyle(element);
+        if (
+            style.display === "none" ||
+            style.visibility === "hidden" ||
+            style.opacity === "0"
+        ) {
+            continue;
+        }
+
+        // Check if the element is in the viewport or close to it
+        const rect = element.getBoundingClientRect();
+        const windowHeight =
+            window.innerHeight || document.documentElement.clientHeight;
+
+        // Element is visible if it's within the viewport or just outside it
+        if (!(rect.bottom < -300 || rect.top > windowHeight + 300)) {
+            const text = element.textContent.trim();
+            if (text) {
+                textNodes.push(text);
+            }
+        }
+    }
+
+    return textNodes;
+}
+
+/**
  * Request a suggestion from the backend
  * @param {string} context - The context to complete
  */
@@ -490,16 +787,31 @@ function requestSuggestion(context) {
     }
     suggestionAbortController = new AbortController();
 
+    // Extract page context if enabled
+    const pageContext = config.enablePageContext ? extractPageContext() : null;
+
+    // Prepare request payload
+    const payload = {
+        context,
+        apiKey: config.apiKey,
+    };
+
+    // Add page context if available
+    if (pageContext) {
+        payload.pageContext = pageContext;
+        debugLog("Including page context in request", {
+            pageContextSize: JSON.stringify(pageContext).length,
+            requestId: requestId,
+        });
+    }
+
     // Send the request to the backend
     fetch(`${API_URL}/suggest`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-            context,
-            apiKey: config.apiKey,
-        }),
+        body: JSON.stringify(payload),
         signal: suggestionAbortController.signal,
     })
         .then((response) => {

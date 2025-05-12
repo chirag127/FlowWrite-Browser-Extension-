@@ -22,13 +22,36 @@ const Telemetry = require("../models/telemetry");
  */
 router.post("/suggest", async (req, res) => {
     try {
-        const { context, apiKey } = req.body;
+        const { context, apiKey, pageContext } = req.body;
 
         // Validate request
         if (!context || !apiKey) {
             return res
                 .status(400)
                 .json({ error: "Missing required parameters" });
+        }
+
+        // Log if page context is provided (for debugging)
+        if (pageContext) {
+            console.log("Page context provided:", {
+                size: JSON.stringify(pageContext).length,
+                fields: Object.keys(pageContext),
+                pageContentSize: pageContext.pageContent
+                    ? pageContext.pageContent.length
+                    : 0,
+                inputFieldContextSize: pageContext.inputFieldContext
+                    ? pageContext.inputFieldContext.length
+                    : 0,
+                relevantSectionsCount: pageContext.relevantSections
+                    ? pageContext.relevantSections.length
+                    : 0,
+            });
+            console.log("Page content:", pageContext.pageContent);
+            console.log("Input field context:", pageContext.inputFieldContext);
+            console.log("Relevant sections:", pageContext.relevantSections);
+            console.log("Page title:", pageContext.pageTitle);
+            console.log("Page URL:", pageContext.pageUrl);
+            console.log("Meta description:", pageContext.pageMeta);
         }
 
         // Initialize Google GenAI with the provided API key
@@ -47,7 +70,7 @@ router.post("/suggest", async (req, res) => {
         // const model = 'gemini-2.0-flash-lite';
 
         // Prepare the content for the API request
-        const contents = `**Role:** You are an AI inline writing assistant, like GitHub Copilot for general text.
+        let contents = `**Role:** You are an AI inline writing assistant, like GitHub Copilot for general text.
 **Goal:** Predict the most likely and helpful text continuation based on the user's input. The suggestion should be contextually relevant, and natural-sounding.
 **Context:** This suggestion will appear inline in real-time as the user types in any web text field (email, chat, form, etc.). The user accepts it by pressing the **Tab** key.
 **Output Requirements:**
@@ -56,11 +79,22 @@ router.post("/suggest", async (req, res) => {
 *   Include a leading space *if and only if* it is grammatically appropriate to follow the provided input text (e.g., if the input doesn't end in a space).
 *   Avoid suggestions that are too generic or unrelated to the context.
 *   IMPORTANT: only send the suggestion if you are more confident than 80% that it is correct. If you are not confident, return an empty string.
-*   Avoid excessive repetition of the same word or phrase.
--   The text before the user's cursor is provided below in the double quotes.
-**text before caret:**
-"${context}"`;
+*   Avoid excessive repetition of the same word or phrase.`;
 
+        // Add page context if available
+        if (pageContext) {
+            contents += `\n\n**Page Context:**
+* Page Title: "${pageContext.pageTitle || ""}"
+* Page URL: "${pageContext.pageUrl || ""}"
+* Meta Description: "${pageContext.pageMeta || ""}"
+* Input Field Context: "${pageContext.inputFieldContext || ""}"
+* Relevant Sections: ${JSON.stringify(pageContext.relevantSections || [])}
+* Page Content: "${pageContext.pageContent || ""}"`;
+        }
+
+        // Add the user's input text
+        contents += `\n\n**Text before caret:**
+"${context}"`;
 
         // Generate content using the Gemini API without streaming
         const response = await ai.models.generateContent({

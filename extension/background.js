@@ -14,6 +14,8 @@ const DEFAULT_CONFIG = {
     disabledSites: [],
     suggestionDelay: 500,
     presentationMode: "inline",
+    enablePageContext: true,
+    debugMode: false,
 };
 
 /**
@@ -28,6 +30,8 @@ function init() {
             "disabledSites",
             "suggestionDelay",
             "presentationMode",
+            "enablePageContext",
+            "debugMode",
         ],
         (result) => {
             const updates = {};
@@ -42,6 +46,10 @@ function init() {
                 updates.suggestionDelay = DEFAULT_CONFIG.suggestionDelay;
             if (result.presentationMode === undefined)
                 updates.presentationMode = DEFAULT_CONFIG.presentationMode;
+            if (result.enablePageContext === undefined)
+                updates.enablePageContext = DEFAULT_CONFIG.enablePageContext;
+            if (result.debugMode === undefined)
+                updates.debugMode = DEFAULT_CONFIG.debugMode;
 
             // Only update if there are changes
             if (Object.keys(updates).length > 0) {
@@ -54,7 +62,7 @@ function init() {
 /**
  * Handle browser action clicks
  */
-chrome.action.onClicked.addListener((tab) => {
+chrome.action.onClicked.addListener(() => {
     // Open the options page
     chrome.runtime.openOptionsPage();
 });
@@ -62,7 +70,7 @@ chrome.action.onClicked.addListener((tab) => {
 /**
  * Handle messages from content scripts or options page
  */
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     // Handle different message types
     switch (message.type) {
         case "GET_CONFIG":
@@ -74,6 +82,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     "disabledSites",
                     "suggestionDelay",
                     "presentationMode",
+                    "enablePageContext",
+                    "debugMode",
                 ],
                 (result) => {
                     sendResponse(result);
