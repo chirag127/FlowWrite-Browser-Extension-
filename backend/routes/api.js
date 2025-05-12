@@ -47,30 +47,20 @@ router.post("/suggest", async (req, res) => {
         // const model = 'gemini-2.0-flash-lite';
 
         // Prepare the content for the API request
-        const contents = [
-            {
-                role: "user",
-                parts: [
-                    {
-                        text: `**Role:** You are an AI inline writing assistant, like GitHub Copilot for general text.
+        const contents = `**Role:** You are an AI inline writing assistant, like GitHub Copilot for general text.
 **Goal:** Predict the most likely and helpful text continuation based on the user's input. The suggestion should be contextually relevant, and natural-sounding.
 **Context:** This suggestion will appear inline in real-time as the user types in any web text field (email, chat, form, etc.). The user accepts it by pressing the **Tab** key.
 **Output Requirements:**
-*   Return *only* the raw predicted text continuation.
+*   Return *only* the raw predicted text continuation after the user's cursor.
 *   Do *not* include any preamble, labels, explanations, or markdown formatting.
 *   Include a leading space *if and only if* it is grammatically appropriate to follow the provided input text (e.g., if the input doesn't end in a space).
-*   Keep suggestions brief and suitable for quick acceptance via Tab.
 *   Avoid suggestions that are too generic or unrelated to the context.
-*   Avoid excessive verbosity or overly complex sentences.
 *   IMPORTANT: only send the suggestion if you are more confident than 80% that it is correct. If you are not confident, return an empty string.
 *   Avoid excessive repetition of the same word or phrase.
--   The input text is provided below in the double quotes.
-**Input Text:**
-"${context}"`,
-                    },
-                ],
-            },
-        ];
+-   The text before the user's cursor is provided below in the double quotes.
+**text before caret:**
+"${context}"`;
+
 
         // Generate content using the Gemini API without streaming
         const response = await ai.models.generateContent({
