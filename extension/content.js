@@ -1076,6 +1076,7 @@ function showInlineSuggestion(suggestion) {
         document.body.appendChild(suggestionElement);
 
         // Ensure the cursor and suggestion are visible by scrolling if necessary
+        // This is critical to ensure the suggestion is visible immediately when displayed
         ensureCursorAndSuggestionVisible(
             currentField,
             cursorPosition,
@@ -1130,6 +1131,7 @@ function showInlineSuggestion(suggestion) {
 
             // For contentEditable elements, we need to ensure the suggestion is visible
             // by scrolling the element if necessary
+            // This is critical to ensure the suggestion is visible immediately when displayed
             ensureContentEditableSuggestionVisible(
                 currentField,
                 suggestionElement
@@ -1654,11 +1656,14 @@ function calculateVisibleBoundaries(field) {
     const scrollLeft = field.scrollLeft || 0;
     const scrollTop = field.scrollTop || 0;
 
-    // Calculate the visible area boundaries
+    // Add a buffer margin (20px) to prevent suggestions from appearing too close to the edge
+    const bufferMargin = 20;
+
+    // Calculate the visible area boundaries with buffer margin
     const visibleLeft = scrollLeft;
-    const visibleRight = scrollLeft + visibleAreaWidth;
+    const visibleRight = scrollLeft + visibleAreaWidth - bufferMargin;
     const visibleTop = scrollTop;
-    const visibleBottom = scrollTop + visibleAreaHeight;
+    const visibleBottom = scrollTop + visibleAreaHeight - bufferMargin;
 
     // Get the field's position on the page
     const fieldRect = field.getBoundingClientRect();
@@ -1678,6 +1683,7 @@ function calculateVisibleBoundaries(field) {
         scrollLeft,
         scrollTop,
         fieldStyle,
+        bufferMargin,
     };
 }
 
@@ -1803,16 +1809,34 @@ function ensureCursorAndSuggestionVisible(
         isMultiline: field.tagName === "TEXTAREA",
     });
 
+    // Function to smoothly scroll the field
+    const smoothScroll = (element, newScrollLeft) => {
+        // Check if the browser supports smooth scrolling
+        if ("scrollBehavior" in document.documentElement.style) {
+            // Use scrollTo with smooth behavior
+            element.scrollTo({
+                left: newScrollLeft,
+                behavior: "smooth",
+            });
+        } else {
+            // Fallback for browsers that don't support smooth scrolling
+            element.scrollLeft = newScrollLeft;
+        }
+    };
+
     // If the cursor is to the left of the visible area, scroll to make it visible
-    if (cursorLeft < boundaries.visibleLeft + 20) {
-        // Add some padding
-        field.scrollLeft = Math.max(0, cursorLeft - 20);
+    if (cursorLeft < boundaries.visibleLeft + boundaries.bufferMargin) {
+        // Add buffer margin for better visibility
+        const newScrollLeft = Math.max(0, cursorLeft - boundaries.bufferMargin);
+        smoothScroll(field, newScrollLeft);
+
         debugLog("Scrolling to make cursor visible (left)", {
-            newScrollLeft: field.scrollLeft,
+            newScrollLeft,
+            smoothScrolling: true,
         });
     }
     // If the suggestion extends beyond the right edge of the visible area, scroll to make it visible
-    else if (suggestionRight > boundaries.visibleRight - 20) {
+    else if (suggestionRight > boundaries.visibleRight) {
         // For multiline textareas, check if we should move to the next line instead of scrolling
         if (
             field.tagName === "TEXTAREA" &&
@@ -1836,70 +1860,81 @@ function ensureCursorAndSuggestionVisible(
             // scroll horizontally to make the suggestion visible
             const newScrollLeft = Math.max(
                 0,
-                suggestionRight - boundaries.visibleAreaWidth + 40
+                suggestionRight -
+                    boundaries.visibleAreaWidth +
+                    boundaries.bufferMargin
             );
-            field.scrollLeft = newScrollLeft;
+
+            // Use smooth scrolling
+            smoothScroll(field, newScrollLeft);
+
             debugLog("Scrolling to make suggestion visible (right)", {
                 newScrollLeft,
+                smoothScrolling: true,
             });
         }
     }
 
     // Update the position of the suggestion element after scrolling
     if (suggestionElement) {
-        const fieldRect = field.getBoundingClientRect();
-        const newTextWidth = getTextWidth(
-            textBeforeCursor,
-            boundaries.fieldStyle.font
-        );
+        // Use a small delay to allow the smooth scrolling to take effect before updating position
+        setTimeout(() => {
+            const fieldRect = field.getBoundingClientRect();
+            const newTextWidth = getTextWidth(
+                textBeforeCursor,
+                boundaries.fieldStyle.font
+            );
 
-        // Check if we should move the suggestion to the next line for multiline textareas
-        if (
-            field.tagName === "TEXTAREA" &&
-            shouldMoveToNextLine(
-                field,
-                cursorPosition,
-                suggestionText,
-                boundaries
-            )
-        ) {
-            // Calculate the position for the next line
-            const lineHeight =
-                parseFloat(boundaries.fieldStyle.lineHeight) ||
-                parseFloat(boundaries.fieldStyle.fontSize) * 1.2;
+            // Check if we should move the suggestion to the next line for multiline textareas
+            if (
+                field.tagName === "TEXTAREA" &&
+                shouldMoveToNextLine(
+                    field,
+                    cursorPosition,
+                    suggestionText,
+                    boundaries
+                )
+            ) {
+                // Calculate the position for the next line
+                const lineHeight =
+                    parseFloat(boundaries.fieldStyle.lineHeight) ||
+                    parseFloat(boundaries.fieldStyle.fontSize) * 1.2;
 
-            // Position at the beginning of the next line
-            suggestionElement.style.left = `${
-                fieldRect.left + boundaries.paddingLeft - field.scrollLeft
-            }px`;
+                // Position at the beginning of the next line
+                suggestionElement.style.left = `${
+                    fieldRect.left + boundaries.paddingLeft - field.scrollLeft
+                }px`;
 
-            suggestionElement.style.top = `${
-                parseFloat(suggestionElement.style.top) + lineHeight
-            }px`;
+                suggestionElement.style.top = `${
+                    parseFloat(suggestionElement.style.top) + lineHeight
+                }px`;
 
-            debugLog("Moved suggestion to next line", {
-                left:
-                    fieldRect.left + boundaries.paddingLeft - field.scrollLeft,
-                top: parseFloat(suggestionElement.style.top),
-                lineHeight: lineHeight,
-            });
-        } else {
-            // Update the position to account for the new scroll position
-            suggestionElement.style.left = `${
-                fieldRect.left +
-                boundaries.paddingLeft +
-                newTextWidth -
-                field.scrollLeft
-            }px`;
-
-            debugLog("Updated suggestion position after scrolling", {
-                left:
+                debugLog("Moved suggestion to next line", {
+                    left:
+                        fieldRect.left +
+                        boundaries.paddingLeft -
+                        field.scrollLeft,
+                    top: parseFloat(suggestionElement.style.top),
+                    lineHeight: lineHeight,
+                });
+            } else {
+                // Update the position to account for the new scroll position
+                suggestionElement.style.left = `${
                     fieldRect.left +
                     boundaries.paddingLeft +
                     newTextWidth -
-                    field.scrollLeft,
-            });
-        }
+                    field.scrollLeft
+                }px`;
+
+                debugLog("Updated suggestion position after scrolling", {
+                    left:
+                        fieldRect.left +
+                        boundaries.paddingLeft +
+                        newTextWidth -
+                        field.scrollLeft,
+                });
+            }
+        }, 50); // Small delay to allow smooth scrolling to take effect
     }
 }
 
@@ -1922,11 +1957,14 @@ function ensureContentEditableSuggestionVisible(field, suggestionEl) {
     const paddingTop = parseFloat(fieldStyle.paddingTop) || 0;
     const paddingBottom = parseFloat(fieldStyle.paddingBottom) || 0;
 
-    // Calculate the visible area boundaries accounting for padding
+    // Add a buffer margin (20px) to prevent suggestions from appearing too close to the edge
+    const bufferMargin = 20;
+
+    // Calculate the visible area boundaries accounting for padding and buffer margin
     const visibleLeft = fieldRect.left + paddingLeft;
-    const visibleRight = fieldRect.right - paddingRight;
+    const visibleRight = fieldRect.right - paddingRight - bufferMargin;
     const visibleTop = fieldRect.top + paddingTop;
-    const visibleBottom = fieldRect.bottom - paddingBottom;
+    const visibleBottom = fieldRect.bottom - paddingBottom - bufferMargin;
 
     // Check if the suggestion is within the visible area of the field
     const isVisible =
@@ -1949,7 +1987,51 @@ function ensureContentEditableSuggestionVisible(field, suggestionEl) {
             top: visibleTop,
             bottom: visibleBottom,
         },
+        bufferMargin,
     });
+
+    // Function to smoothly scroll an element
+    const smoothScroll = (element, direction, amount) => {
+        if (!element) return;
+
+        // Check if the browser supports smooth scrolling
+        if (
+            "scrollBehavior" in document.documentElement.style &&
+            element.scrollBy
+        ) {
+            // Use scrollBy with smooth behavior
+            const scrollOptions = {
+                behavior: "smooth",
+            };
+
+            if (direction === "horizontal") {
+                scrollOptions.left = amount;
+            } else {
+                scrollOptions.top = amount;
+            }
+
+            element.scrollBy(scrollOptions);
+            return true;
+        }
+        // Fallback for browsers or elements that don't support smooth scrolling
+        else {
+            if (
+                direction === "horizontal" &&
+                element.scrollLeft !== undefined
+            ) {
+                element.scrollLeft += amount;
+                return true;
+            } else if (
+                direction === "vertical" &&
+                element.scrollTop !== undefined
+            ) {
+                element.scrollTop += amount;
+                return true;
+            }
+        }
+
+        return false;
+    };
 
     if (!isVisible) {
         // If the suggestion is not visible, we need to scroll the field
@@ -1958,136 +2040,140 @@ function ensureContentEditableSuggestionVisible(field, suggestionEl) {
         // Calculate how much we need to scroll horizontally
         if (suggestionRect.right > visibleRight) {
             // Suggestion extends beyond the right edge
-            const scrollAmount = suggestionRect.right - visibleRight + 20; // Add some padding
+            const scrollAmount =
+                suggestionRect.right - visibleRight + bufferMargin;
 
-            // Scroll the field if it has scrollLeft
-            if (field.scrollLeft !== undefined) {
-                field.scrollLeft += scrollAmount;
-                debugLog("Scrolled contentEditable horizontally", {
-                    scrollAmount,
-                    newScrollLeft: field.scrollLeft,
-                });
-            }
-            // Otherwise try to use scrollBy
-            else if (field.scrollBy) {
-                field.scrollBy({
-                    left: scrollAmount,
-                    behavior: "smooth",
-                });
-                debugLog("Used scrollBy for contentEditable", {
-                    scrollAmount,
-                });
-            }
-            // If neither method works, try to find a scrollable parent
-            else {
+            // Try to scroll the field directly
+            let scrolled = smoothScroll(field, "horizontal", scrollAmount);
+
+            // If direct scrolling didn't work, try to find a scrollable parent
+            if (!scrolled) {
                 const scrollableParent = findScrollableParent(field);
                 if (scrollableParent) {
-                    scrollableParent.scrollLeft += scrollAmount;
-                    debugLog("Scrolled contentEditable parent horizontally", {
-                        scrollAmount,
-                        newScrollLeft: scrollableParent.scrollLeft,
-                    });
+                    scrolled = smoothScroll(
+                        scrollableParent,
+                        "horizontal",
+                        scrollAmount
+                    );
+
+                    if (scrolled) {
+                        debugLog(
+                            "Scrolled contentEditable parent horizontally",
+                            {
+                                scrollAmount,
+                                smoothScrolling: true,
+                            }
+                        );
+                    }
                 }
+            } else {
+                debugLog("Scrolled contentEditable horizontally", {
+                    scrollAmount,
+                    smoothScrolling: true,
+                });
             }
         }
         // If suggestion is to the left of the visible area
         else if (suggestionRect.left < visibleLeft) {
-            const scrollAmount = visibleLeft - suggestionRect.left + 20; // Add some padding
+            const scrollAmount =
+                visibleLeft - suggestionRect.left + bufferMargin;
 
-            if (field.scrollLeft !== undefined) {
-                field.scrollLeft -= scrollAmount;
-                debugLog("Scrolled contentEditable horizontally (left)", {
-                    scrollAmount: -scrollAmount,
-                    newScrollLeft: field.scrollLeft,
-                });
-            } else if (field.scrollBy) {
-                field.scrollBy({
-                    left: -scrollAmount,
-                    behavior: "smooth",
-                });
-                debugLog("Used scrollBy for contentEditable (left)", {
-                    scrollAmount: -scrollAmount,
-                });
-            } else {
+            // Try to scroll the field directly
+            let scrolled = smoothScroll(field, "horizontal", -scrollAmount);
+
+            // If direct scrolling didn't work, try to find a scrollable parent
+            if (!scrolled) {
                 const scrollableParent = findScrollableParent(field);
                 if (scrollableParent) {
-                    scrollableParent.scrollLeft -= scrollAmount;
-                    debugLog(
-                        "Scrolled contentEditable parent horizontally (left)",
-                        {
-                            scrollAmount: -scrollAmount,
-                            newScrollLeft: scrollableParent.scrollLeft,
-                        }
+                    scrolled = smoothScroll(
+                        scrollableParent,
+                        "horizontal",
+                        -scrollAmount
                     );
+
+                    if (scrolled) {
+                        debugLog(
+                            "Scrolled contentEditable parent horizontally (left)",
+                            {
+                                scrollAmount: -scrollAmount,
+                                smoothScrolling: true,
+                            }
+                        );
+                    }
                 }
+            } else {
+                debugLog("Scrolled contentEditable horizontally (left)", {
+                    scrollAmount: -scrollAmount,
+                    smoothScrolling: true,
+                });
             }
         }
 
         // Calculate how much we need to scroll vertically
         if (suggestionRect.bottom > visibleBottom) {
             // Suggestion extends beyond the bottom edge
-            const scrollAmount = suggestionRect.bottom - visibleBottom + 20; // Add some padding
+            const scrollAmount =
+                suggestionRect.bottom - visibleBottom + bufferMargin;
 
-            // Scroll the field if it has scrollTop
-            if (field.scrollTop !== undefined) {
-                field.scrollTop += scrollAmount;
-                debugLog("Scrolled contentEditable vertically", {
-                    scrollAmount,
-                    newScrollTop: field.scrollTop,
-                });
-            }
-            // Otherwise try to use scrollBy
-            else if (field.scrollBy) {
-                field.scrollBy({
-                    top: scrollAmount,
-                    behavior: "smooth",
-                });
-                debugLog("Used scrollBy for contentEditable vertical", {
-                    scrollAmount,
-                });
-            }
-            // If neither method works, try to find a scrollable parent
-            else {
+            // Try to scroll the field directly
+            let scrolled = smoothScroll(field, "vertical", scrollAmount);
+
+            // If direct scrolling didn't work, try to find a scrollable parent
+            if (!scrolled) {
                 const scrollableParent = findScrollableParent(field);
                 if (scrollableParent) {
-                    scrollableParent.scrollTop += scrollAmount;
-                    debugLog("Scrolled contentEditable parent vertically", {
-                        scrollAmount,
-                        newScrollTop: scrollableParent.scrollTop,
-                    });
+                    scrolled = smoothScroll(
+                        scrollableParent,
+                        "vertical",
+                        scrollAmount
+                    );
+
+                    if (scrolled) {
+                        debugLog("Scrolled contentEditable parent vertically", {
+                            scrollAmount,
+                            smoothScrolling: true,
+                        });
+                    }
                 }
+            } else {
+                debugLog("Scrolled contentEditable vertically", {
+                    scrollAmount,
+                    smoothScrolling: true,
+                });
             }
         }
         // If suggestion is above the visible area
         else if (suggestionRect.top < visibleTop) {
-            const scrollAmount = visibleTop - suggestionRect.top + 20; // Add some padding
+            const scrollAmount = visibleTop - suggestionRect.top + bufferMargin;
 
-            if (field.scrollTop !== undefined) {
-                field.scrollTop -= scrollAmount;
-                debugLog("Scrolled contentEditable vertically (up)", {
-                    scrollAmount: -scrollAmount,
-                    newScrollTop: field.scrollTop,
-                });
-            } else if (field.scrollBy) {
-                field.scrollBy({
-                    top: -scrollAmount,
-                    behavior: "smooth",
-                });
-                debugLog("Used scrollBy for contentEditable vertical (up)", {
-                    scrollAmount: -scrollAmount,
-                });
-            } else {
+            // Try to scroll the field directly
+            let scrolled = smoothScroll(field, "vertical", -scrollAmount);
+
+            // If direct scrolling didn't work, try to find a scrollable parent
+            if (!scrolled) {
                 const scrollableParent = findScrollableParent(field);
                 if (scrollableParent) {
-                    scrollableParent.scrollTop -= scrollAmount;
-                    debugLog(
-                        "Scrolled contentEditable parent vertically (up)",
-                        {
-                            scrollAmount: -scrollAmount,
-                            newScrollTop: scrollableParent.scrollTop,
-                        }
+                    scrolled = smoothScroll(
+                        scrollableParent,
+                        "vertical",
+                        -scrollAmount
                     );
+
+                    if (scrolled) {
+                        debugLog(
+                            "Scrolled contentEditable parent vertically (up)",
+                            {
+                                scrollAmount: -scrollAmount,
+                                smoothScrolling: true,
+                            }
+                        );
+                    }
                 }
+            } else {
+                debugLog("Scrolled contentEditable vertically (up)", {
+                    scrollAmount: -scrollAmount,
+                    smoothScrolling: true,
+                });
             }
         }
     }
