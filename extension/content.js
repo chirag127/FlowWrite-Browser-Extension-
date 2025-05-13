@@ -995,9 +995,15 @@ function showInlineSuggestion(suggestion) {
         // Calculate font metrics for better vertical alignment
         const fontSizeInPx = parseFloat(fieldStyle.fontSize);
 
+        // Account for horizontal scrolling in the input field
+        // This is critical to ensure the ghost text appears at the right position
+        // even when the text has scrolled horizontally
+        const scrollLeft = currentField.scrollLeft || 0;
+
         // Position the suggestion - ensure it's exactly at the cursor position
+        // Adjust for scrolling to ensure correct positioning
         suggestionElement.style.left = `${
-            fieldRect.left + fieldPaddingLeft + textWidth
+            fieldRect.left + fieldPaddingLeft + textWidth - scrollLeft
         }px`;
 
         // Adjust vertical position to align with text baseline
@@ -1014,12 +1020,20 @@ function showInlineSuggestion(suggestion) {
         debugLog("Positioned suggestion for input/textarea", {
             cursorPosition: cursorPosition,
             textWidth: textWidth,
-            left: fieldRect.left + fieldPaddingLeft + textWidth,
+            scrollLeft: scrollLeft,
+            left: fieldRect.left + fieldPaddingLeft + textWidth - scrollLeft,
             top: fieldRect.top + fieldPaddingTop,
         });
 
         // Add the suggestion to the page
         document.body.appendChild(suggestionElement);
+
+        // Ensure the cursor and suggestion are visible by scrolling if necessary
+        ensureCursorAndSuggestionVisible(
+            currentField,
+            cursorPosition,
+            suggestion.length
+        );
     }
     // If the field is contentEditable
     else if (currentField.isContentEditable) {
@@ -1066,6 +1080,13 @@ function showInlineSuggestion(suggestion) {
                     suggestionElement.textContent.substring(0, 20) +
                     (suggestionElement.textContent.length > 20 ? "..." : ""),
             });
+
+            // For contentEditable elements, we need to ensure the suggestion is visible
+            // by scrolling the element if necessary
+            ensureContentEditableSuggestionVisible(
+                currentField,
+                suggestionElement
+            );
         }
     }
 }
@@ -1152,15 +1173,26 @@ function acceptSuggestion() {
         // Update the field value
         currentField.value = newValue;
 
+        // Calculate the new cursor position (at the end of the inserted suggestion)
+        const newCursorPosition = cursorPosition + currentSuggestion.length;
+
         // Move the cursor to the end of the suggestion
-        setCursorPosition(
-            currentField,
-            cursorPosition + currentSuggestion.length
-        );
+        setCursorPosition(currentField, newCursorPosition);
+
+        // Ensure the cursor is visible after accepting the suggestion
+        // This is critical to fix the issue where the cursor becomes invisible
+        // after accepting a suggestion
+        ensureCursorAndSuggestionVisible(currentField, newCursorPosition, 0);
 
         // Dispatch input event to trigger any listeners
         const inputEvent = new Event("input", { bubbles: true });
         currentField.dispatchEvent(inputEvent);
+
+        debugLog("Accepted suggestion in input/textarea", {
+            originalCursorPosition: cursorPosition,
+            newCursorPosition: newCursorPosition,
+            suggestionLength: currentSuggestion.length,
+        });
     }
     // If the field is contentEditable
     else if (currentField.isContentEditable) {
@@ -1180,6 +1212,19 @@ function acceptSuggestion() {
             range.setEndAfter(textNode);
             selection.removeAllRanges();
             selection.addRange(range);
+
+            // Store the range for debugging
+            const cursorRect = range.getBoundingClientRect();
+
+            debugLog("Accepted suggestion in contentEditable", {
+                cursorPosition: "after text node",
+                cursorRect: {
+                    left: cursorRect.left,
+                    top: cursorRect.top,
+                    right: cursorRect.right,
+                    bottom: cursorRect.bottom,
+                },
+            });
 
             suggestionElement = null;
 
@@ -1216,9 +1261,17 @@ function acceptSuggestion() {
                 selection.removeAllRanges();
                 selection.addRange(range);
 
+                // Ensure the cursor is visible after insertion
+                ensureContentEditableSuggestionVisible(whatsappInput, textNode);
+
                 // Dispatch input event
                 const inputEvent = new Event("input", { bubbles: true });
                 whatsappInput.dispatchEvent(inputEvent);
+
+                debugLog("Accepted suggestion in WhatsApp", {
+                    inputType: "contentEditable",
+                    suggestionLength: currentSuggestion.length,
+                });
             }
         }
     }
@@ -1249,9 +1302,17 @@ function acceptSuggestion() {
                 selection.removeAllRanges();
                 selection.addRange(range);
 
+                // Ensure the cursor is visible after insertion
+                ensureContentEditableSuggestionVisible(discordInput, textNode);
+
                 // Dispatch input event
                 const inputEvent = new Event("input", { bubbles: true });
                 discordInput.dispatchEvent(inputEvent);
+
+                debugLog("Accepted suggestion in Discord", {
+                    inputType: "contentEditable",
+                    suggestionLength: currentSuggestion.length,
+                });
             }
         }
     }
@@ -1270,14 +1331,29 @@ function acceptSuggestion() {
                 currentField.value.substring(cursorPosition);
 
             currentField.value = newValue;
-            setCursorPosition(
+
+            // Calculate the new cursor position
+            const newCursorPosition = cursorPosition + currentSuggestion.length;
+
+            // Set the cursor position
+            setCursorPosition(currentField, newCursorPosition);
+
+            // Ensure the cursor is visible
+            ensureCursorAndSuggestionVisible(
                 currentField,
-                cursorPosition + currentSuggestion.length
+                newCursorPosition,
+                0
             );
 
             // Dispatch input event
             const inputEvent = new Event("input", { bubbles: true });
             currentField.dispatchEvent(inputEvent);
+
+            debugLog("Accepted suggestion in role-based input", {
+                originalCursorPosition: cursorPosition,
+                newCursorPosition: newCursorPosition,
+                suggestionLength: currentSuggestion.length,
+            });
         }
         // Otherwise try to handle as contentEditable
         else {
@@ -1297,9 +1373,17 @@ function acceptSuggestion() {
                 selection.removeAllRanges();
                 selection.addRange(range);
 
+                // Ensure the cursor is visible after insertion
+                ensureContentEditableSuggestionVisible(currentField, textNode);
+
                 // Dispatch input event
                 const inputEvent = new Event("input", { bubbles: true });
                 currentField.dispatchEvent(inputEvent);
+
+                debugLog("Accepted suggestion in role-based contentEditable", {
+                    inputType: "contentEditable",
+                    suggestionLength: currentSuggestion.length,
+                });
             }
         }
     }
@@ -1491,6 +1575,186 @@ function getTextWidth(text, font) {
     const metrics = context.measureText(text);
 
     return metrics.width;
+}
+
+/**
+ * Ensure the cursor and suggestion are visible by scrolling if necessary
+ * @param {HTMLElement} field - The input field
+ * @param {number} cursorPosition - The cursor position
+ * @param {number} suggestionLength - The length of the suggestion
+ */
+function ensureCursorAndSuggestionVisible(
+    field,
+    cursorPosition,
+    suggestionLength
+) {
+    if (!field) return;
+
+    // Only applicable for input and textarea elements
+    if (field.tagName !== "INPUT" && field.tagName !== "TEXTAREA") return;
+
+    const fieldStyle = window.getComputedStyle(field);
+    const fieldWidth = field.clientWidth;
+    const paddingLeft = parseFloat(fieldStyle.paddingLeft) || 0;
+    const paddingRight = parseFloat(fieldStyle.paddingRight) || 0;
+    const borderLeft = parseFloat(fieldStyle.borderLeftWidth) || 0;
+    const borderRight = parseFloat(fieldStyle.borderRightWidth) || 0;
+
+    // Get text before cursor
+    const textBeforeCursor = field.value.substring(0, cursorPosition);
+
+    // Get text of the suggestion
+    const suggestionText = field.value.substring(
+        cursorPosition,
+        cursorPosition + suggestionLength
+    );
+
+    // Measure the width of text before cursor and the suggestion
+    const textBeforeCursorWidth = getTextWidth(
+        textBeforeCursor,
+        fieldStyle.font
+    );
+    const suggestionWidth = getTextWidth(suggestionText, fieldStyle.font);
+
+    // Calculate the visible area width
+    const visibleAreaWidth =
+        fieldWidth - paddingLeft - paddingRight - borderLeft - borderRight;
+
+    // Calculate the cursor position in pixels from the left edge of the content
+    const cursorLeft = paddingLeft + textBeforeCursorWidth;
+
+    // Calculate the right edge of the suggestion
+    const suggestionRight = cursorLeft + suggestionWidth;
+
+    // Get the current scroll position
+    const scrollLeft = field.scrollLeft || 0;
+
+    // Calculate the visible area boundaries
+    const visibleLeft = scrollLeft;
+    const visibleRight = scrollLeft + visibleAreaWidth;
+
+    debugLog("Checking cursor and suggestion visibility", {
+        cursorLeft,
+        suggestionRight,
+        visibleLeft,
+        visibleRight,
+        scrollLeft,
+        visibleAreaWidth,
+    });
+
+    // If the cursor is to the left of the visible area, scroll to make it visible
+    if (cursorLeft < visibleLeft + 20) {
+        // Add some padding
+        field.scrollLeft = Math.max(0, cursorLeft - 20);
+        debugLog("Scrolling to make cursor visible (left)", {
+            newScrollLeft: field.scrollLeft,
+        });
+    }
+    // If the suggestion extends beyond the right edge of the visible area, scroll to make it visible
+    else if (suggestionRight > visibleRight - 20) {
+        // Add some padding
+        // Calculate how much we need to scroll to show the suggestion
+        // We want to show as much of the suggestion as possible
+        const newScrollLeft = Math.max(
+            0,
+            suggestionRight - visibleAreaWidth + 40
+        );
+        field.scrollLeft = newScrollLeft;
+        debugLog("Scrolling to make suggestion visible (right)", {
+            newScrollLeft,
+        });
+    }
+
+    // Update the position of the suggestion element after scrolling
+    if (suggestionElement) {
+        const fieldRect = field.getBoundingClientRect();
+        const newTextWidth = getTextWidth(textBeforeCursor, fieldStyle.font);
+
+        // Update the position to account for the new scroll position
+        suggestionElement.style.left = `${
+            fieldRect.left + paddingLeft + newTextWidth - field.scrollLeft
+        }px`;
+
+        debugLog("Updated suggestion position after scrolling", {
+            left:
+                fieldRect.left + paddingLeft + newTextWidth - field.scrollLeft,
+        });
+    }
+}
+
+/**
+ * Ensure the suggestion is visible in a contentEditable element by scrolling if necessary
+ * @param {HTMLElement} field - The contentEditable element
+ * @param {HTMLElement} suggestionEl - The suggestion element
+ */
+function ensureContentEditableSuggestionVisible(field, suggestionEl) {
+    if (!field || !suggestionEl) return;
+
+    // Get the field and suggestion element rectangles
+    const fieldRect = field.getBoundingClientRect();
+    const suggestionRect = suggestionEl.getBoundingClientRect();
+
+    // Check if the suggestion is within the visible area of the field
+    const isVisible =
+        suggestionRect.left >= fieldRect.left &&
+        suggestionRect.right <= fieldRect.right &&
+        suggestionRect.top >= fieldRect.top &&
+        suggestionRect.bottom <= fieldRect.bottom;
+
+    if (!isVisible) {
+        // If the suggestion is not visible, we need to scroll the field
+        // This is more complex for contentEditable elements as they don't have a standard scrollLeft property
+
+        // Calculate how much we need to scroll horizontally
+        if (suggestionRect.right > fieldRect.right) {
+            // Suggestion extends beyond the right edge
+            const scrollAmount = suggestionRect.right - fieldRect.right + 20; // Add some padding
+
+            // Scroll the field if it has scrollLeft
+            if (field.scrollLeft !== undefined) {
+                field.scrollLeft += scrollAmount;
+                debugLog("Scrolled contentEditable horizontally", {
+                    scrollAmount,
+                    newScrollLeft: field.scrollLeft,
+                });
+            }
+            // Otherwise try to use scrollBy
+            else if (field.scrollBy) {
+                field.scrollBy({
+                    left: scrollAmount,
+                    behavior: "smooth",
+                });
+                debugLog("Used scrollBy for contentEditable", {
+                    scrollAmount,
+                });
+            }
+        }
+
+        // Calculate how much we need to scroll vertically
+        if (suggestionRect.bottom > fieldRect.bottom) {
+            // Suggestion extends beyond the bottom edge
+            const scrollAmount = suggestionRect.bottom - fieldRect.bottom + 20; // Add some padding
+
+            // Scroll the field if it has scrollTop
+            if (field.scrollTop !== undefined) {
+                field.scrollTop += scrollAmount;
+                debugLog("Scrolled contentEditable vertically", {
+                    scrollAmount,
+                    newScrollTop: field.scrollTop,
+                });
+            }
+            // Otherwise try to use scrollBy
+            else if (field.scrollBy) {
+                field.scrollBy({
+                    top: scrollAmount,
+                    behavior: "smooth",
+                });
+                debugLog("Used scrollBy for contentEditable vertical", {
+                    scrollAmount,
+                });
+            }
+        }
+    }
 }
 
 // Initialize the content script
