@@ -971,12 +971,6 @@ function showInlineSuggestion(suggestion) {
         suggestionElement.style.whiteSpace = "pre";
         suggestionElement.style.zIndex = "9999";
 
-        // Position the suggestion after the cursor
-        const fieldRect = currentField.getBoundingClientRect();
-        const fieldStyle = window.getComputedStyle(currentField);
-        const fieldPaddingLeft = parseFloat(fieldStyle.paddingLeft);
-        const fieldPaddingTop = parseFloat(fieldStyle.paddingTop);
-
         // Calculate cursor position
         const cursorPosition = getCursorPosition(currentField);
         const textBeforeCursor = currentField.value.substring(
@@ -984,46 +978,99 @@ function showInlineSuggestion(suggestion) {
             cursorPosition
         );
 
+        // Get the visible boundaries of the field
+        const boundaries = calculateVisibleBoundaries(currentField);
+        if (!boundaries) return;
+
         // Get the width of the text before the cursor
-        const textWidth = getTextWidth(textBeforeCursor, fieldStyle.font);
+        const textWidth = getTextWidth(
+            textBeforeCursor,
+            boundaries.fieldStyle.font
+        );
 
         // Get line height for proper vertical alignment
         const lineHeight =
-            parseFloat(fieldStyle.lineHeight) ||
-            parseFloat(fieldStyle.fontSize) * 1.2;
+            parseFloat(boundaries.fieldStyle.lineHeight) ||
+            parseFloat(boundaries.fieldStyle.fontSize) * 1.2;
 
         // Calculate font metrics for better vertical alignment
-        const fontSizeInPx = parseFloat(fieldStyle.fontSize);
+        const fontSizeInPx = parseFloat(boundaries.fieldStyle.fontSize);
 
-        // Account for horizontal scrolling in the input field
-        // This is critical to ensure the ghost text appears at the right position
-        // even when the text has scrolled horizontally
-        const scrollLeft = currentField.scrollLeft || 0;
+        // Check if we should move the suggestion to the next line for multiline textareas
+        let shouldWrapToNextLine = false;
+        if (currentField.tagName === "TEXTAREA") {
+            shouldWrapToNextLine = shouldMoveToNextLine(
+                currentField,
+                cursorPosition,
+                suggestion,
+                boundaries
+            );
+        }
 
-        // Position the suggestion - ensure it's exactly at the cursor position
-        // Adjust for scrolling to ensure correct positioning
-        suggestionElement.style.left = `${
-            fieldRect.left + fieldPaddingLeft + textWidth - scrollLeft
-        }px`;
+        // Position the suggestion
+        if (shouldWrapToNextLine) {
+            // Position at the beginning of the next line
+            suggestionElement.style.left = `${
+                boundaries.fieldRect.left +
+                boundaries.paddingLeft -
+                currentField.scrollLeft
+            }px`;
 
-        // Adjust vertical position to align with text baseline
-        suggestionElement.style.top = `${
-            fieldRect.top + fieldPaddingTop + (lineHeight - fontSizeInPx) / 2
-        }px`;
+            // Calculate the vertical position for the next line
+            const currentLineTop =
+                boundaries.fieldRect.top +
+                boundaries.paddingTop +
+                (lineHeight - fontSizeInPx) / 2;
+
+            suggestionElement.style.top = `${currentLineTop + lineHeight}px`;
+
+            debugLog("Positioned suggestion at beginning of next line", {
+                cursorPosition: cursorPosition,
+                left:
+                    boundaries.fieldRect.left +
+                    boundaries.paddingLeft -
+                    currentField.scrollLeft,
+                top: currentLineTop + lineHeight,
+                shouldWrapToNextLine: true,
+            });
+        } else {
+            // Position after the cursor on the same line
+            suggestionElement.style.left = `${
+                boundaries.fieldRect.left +
+                boundaries.paddingLeft +
+                textWidth -
+                currentField.scrollLeft
+            }px`;
+
+            // Adjust vertical position to align with text baseline
+            suggestionElement.style.top = `${
+                boundaries.fieldRect.top +
+                boundaries.paddingTop +
+                (lineHeight - fontSizeInPx) / 2
+            }px`;
+
+            debugLog("Positioned suggestion after cursor on same line", {
+                cursorPosition: cursorPosition,
+                textWidth: textWidth,
+                scrollLeft: currentField.scrollLeft,
+                left:
+                    boundaries.fieldRect.left +
+                    boundaries.paddingLeft +
+                    textWidth -
+                    currentField.scrollLeft,
+                top:
+                    boundaries.fieldRect.top +
+                    boundaries.paddingTop +
+                    (lineHeight - fontSizeInPx) / 2,
+                shouldWrapToNextLine: false,
+            });
+        }
 
         // Match the font properties exactly
-        suggestionElement.style.fontFamily = fieldStyle.fontFamily;
-        suggestionElement.style.fontSize = fieldStyle.fontSize;
-        suggestionElement.style.fontWeight = fieldStyle.fontWeight;
-        suggestionElement.style.lineHeight = fieldStyle.lineHeight;
-
-        debugLog("Positioned suggestion for input/textarea", {
-            cursorPosition: cursorPosition,
-            textWidth: textWidth,
-            scrollLeft: scrollLeft,
-            left: fieldRect.left + fieldPaddingLeft + textWidth - scrollLeft,
-            top: fieldRect.top + fieldPaddingTop,
-        });
+        suggestionElement.style.fontFamily = boundaries.fieldStyle.fontFamily;
+        suggestionElement.style.fontSize = boundaries.fieldStyle.fontSize;
+        suggestionElement.style.fontWeight = boundaries.fieldStyle.fontWeight;
+        suggestionElement.style.lineHeight = boundaries.fieldStyle.lineHeight;
 
         // Add the suggestion to the page
         document.body.appendChild(suggestionElement);
@@ -1578,6 +1625,130 @@ function getTextWidth(text, font) {
 }
 
 /**
+ * Calculate the visible boundaries of an input field
+ * @param {HTMLElement} field - The input field
+ * @returns {Object} - The visible boundaries
+ */
+function calculateVisibleBoundaries(field) {
+    if (!field) return null;
+
+    const fieldStyle = window.getComputedStyle(field);
+    const fieldWidth = field.clientWidth;
+    const fieldHeight = field.clientHeight;
+    const paddingLeft = parseFloat(fieldStyle.paddingLeft) || 0;
+    const paddingRight = parseFloat(fieldStyle.paddingRight) || 0;
+    const paddingTop = parseFloat(fieldStyle.paddingTop) || 0;
+    const paddingBottom = parseFloat(fieldStyle.paddingBottom) || 0;
+    const borderLeft = parseFloat(fieldStyle.borderLeftWidth) || 0;
+    const borderRight = parseFloat(fieldStyle.borderRightWidth) || 0;
+    const borderTop = parseFloat(fieldStyle.borderTopWidth) || 0;
+    const borderBottom = parseFloat(fieldStyle.borderBottomWidth) || 0;
+
+    // Calculate the visible area dimensions
+    const visibleAreaWidth =
+        fieldWidth - paddingLeft - paddingRight - borderLeft - borderRight;
+    const visibleAreaHeight =
+        fieldHeight - paddingTop - paddingBottom - borderTop - borderBottom;
+
+    // Get the current scroll position
+    const scrollLeft = field.scrollLeft || 0;
+    const scrollTop = field.scrollTop || 0;
+
+    // Calculate the visible area boundaries
+    const visibleLeft = scrollLeft;
+    const visibleRight = scrollLeft + visibleAreaWidth;
+    const visibleTop = scrollTop;
+    const visibleBottom = scrollTop + visibleAreaHeight;
+
+    // Get the field's position on the page
+    const fieldRect = field.getBoundingClientRect();
+
+    return {
+        visibleLeft,
+        visibleRight,
+        visibleTop,
+        visibleBottom,
+        visibleAreaWidth,
+        visibleAreaHeight,
+        fieldRect,
+        paddingLeft,
+        paddingRight,
+        paddingTop,
+        paddingBottom,
+        scrollLeft,
+        scrollTop,
+        fieldStyle,
+    };
+}
+
+/**
+ * Determine if a suggestion should be moved to the next line
+ * @param {HTMLElement} field - The input field
+ * @param {number} cursorPosition - The cursor position
+ * @param {string} suggestionText - The suggestion text
+ * @param {Object} boundaries - The visible boundaries
+ * @returns {boolean} - Whether the suggestion should be moved to the next line
+ */
+function shouldMoveToNextLine(
+    field,
+    cursorPosition,
+    suggestionText,
+    boundaries
+) {
+    if (!field || !boundaries) return false;
+
+    // Only applicable for textarea elements
+    if (field.tagName !== "TEXTAREA") return false;
+
+    // Get text before cursor
+    const textBeforeCursor = field.value.substring(0, cursorPosition);
+
+    // Check if we're near the end of a line
+    const textBeforeCursorWidth = getTextWidth(
+        textBeforeCursor,
+        boundaries.fieldStyle.font
+    );
+    const suggestionWidth = getTextWidth(
+        suggestionText,
+        boundaries.fieldStyle.font
+    );
+
+    // Calculate the cursor position in pixels from the left edge of the content
+    const cursorLeft = boundaries.paddingLeft + textBeforeCursorWidth;
+
+    // Calculate the right edge of the suggestion
+    const suggestionRight = cursorLeft + suggestionWidth;
+
+    // Check if the suggestion would extend beyond the visible area
+    const wouldExtendBeyondVisible =
+        suggestionRight > boundaries.visibleRight - 20;
+
+    // Check if we're near the end of the textarea width
+    // This helps determine if we're at the end of a line in a multiline textarea
+    const isNearEndOfLine = cursorLeft > boundaries.visibleAreaWidth * 0.8;
+
+    // Check if the text before cursor contains a newline character
+    // and if the cursor is at the end of the current line
+    const lastNewlineIndex = textBeforeCursor.lastIndexOf("\n");
+    const textAfterLastNewline =
+        lastNewlineIndex >= 0
+            ? textBeforeCursor.substring(lastNewlineIndex + 1)
+            : textBeforeCursor;
+
+    // Check if the text after the last newline is approaching the width of the visible area
+    const isNearEndOfCurrentLine =
+        getTextWidth(textAfterLastNewline, boundaries.fieldStyle.font) >
+        boundaries.visibleAreaWidth * 0.8;
+
+    // If the cursor is near the end of a line and the suggestion would extend beyond visible area
+    // or if we're in a multiline textarea and near the end of the current line
+    return (
+        (wouldExtendBeyondVisible && isNearEndOfLine) ||
+        (field.tagName === "TEXTAREA" && isNearEndOfCurrentLine)
+    );
+}
+
+/**
  * Ensure the cursor and suggestion are visible by scrolling if necessary
  * @param {HTMLElement} field - The input field
  * @param {number} cursorPosition - The cursor position
@@ -1593,12 +1764,9 @@ function ensureCursorAndSuggestionVisible(
     // Only applicable for input and textarea elements
     if (field.tagName !== "INPUT" && field.tagName !== "TEXTAREA") return;
 
-    const fieldStyle = window.getComputedStyle(field);
-    const fieldWidth = field.clientWidth;
-    const paddingLeft = parseFloat(fieldStyle.paddingLeft) || 0;
-    const paddingRight = parseFloat(fieldStyle.paddingRight) || 0;
-    const borderLeft = parseFloat(fieldStyle.borderLeftWidth) || 0;
-    const borderRight = parseFloat(fieldStyle.borderRightWidth) || 0;
+    // Calculate the visible boundaries
+    const boundaries = calculateVisibleBoundaries(field);
+    if (!boundaries) return;
 
     // Get text before cursor
     const textBeforeCursor = field.value.substring(0, cursorPosition);
@@ -1612,38 +1780,31 @@ function ensureCursorAndSuggestionVisible(
     // Measure the width of text before cursor and the suggestion
     const textBeforeCursorWidth = getTextWidth(
         textBeforeCursor,
-        fieldStyle.font
+        boundaries.fieldStyle.font
     );
-    const suggestionWidth = getTextWidth(suggestionText, fieldStyle.font);
-
-    // Calculate the visible area width
-    const visibleAreaWidth =
-        fieldWidth - paddingLeft - paddingRight - borderLeft - borderRight;
+    const suggestionWidth = getTextWidth(
+        suggestionText,
+        boundaries.fieldStyle.font
+    );
 
     // Calculate the cursor position in pixels from the left edge of the content
-    const cursorLeft = paddingLeft + textBeforeCursorWidth;
+    const cursorLeft = boundaries.paddingLeft + textBeforeCursorWidth;
 
     // Calculate the right edge of the suggestion
     const suggestionRight = cursorLeft + suggestionWidth;
 
-    // Get the current scroll position
-    const scrollLeft = field.scrollLeft || 0;
-
-    // Calculate the visible area boundaries
-    const visibleLeft = scrollLeft;
-    const visibleRight = scrollLeft + visibleAreaWidth;
-
     debugLog("Checking cursor and suggestion visibility", {
         cursorLeft,
         suggestionRight,
-        visibleLeft,
-        visibleRight,
-        scrollLeft,
-        visibleAreaWidth,
+        visibleLeft: boundaries.visibleLeft,
+        visibleRight: boundaries.visibleRight,
+        scrollLeft: boundaries.scrollLeft,
+        visibleAreaWidth: boundaries.visibleAreaWidth,
+        isMultiline: field.tagName === "TEXTAREA",
     });
 
     // If the cursor is to the left of the visible area, scroll to make it visible
-    if (cursorLeft < visibleLeft + 20) {
+    if (cursorLeft < boundaries.visibleLeft + 20) {
         // Add some padding
         field.scrollLeft = Math.max(0, cursorLeft - 20);
         debugLog("Scrolling to make cursor visible (left)", {
@@ -1651,34 +1812,94 @@ function ensureCursorAndSuggestionVisible(
         });
     }
     // If the suggestion extends beyond the right edge of the visible area, scroll to make it visible
-    else if (suggestionRight > visibleRight - 20) {
-        // Add some padding
-        // Calculate how much we need to scroll to show the suggestion
-        // We want to show as much of the suggestion as possible
-        const newScrollLeft = Math.max(
-            0,
-            suggestionRight - visibleAreaWidth + 40
-        );
-        field.scrollLeft = newScrollLeft;
-        debugLog("Scrolling to make suggestion visible (right)", {
-            newScrollLeft,
-        });
+    else if (suggestionRight > boundaries.visibleRight - 20) {
+        // For multiline textareas, check if we should move to the next line instead of scrolling
+        if (
+            field.tagName === "TEXTAREA" &&
+            shouldMoveToNextLine(
+                field,
+                cursorPosition,
+                suggestionText,
+                boundaries
+            )
+        ) {
+            // For multiline textareas, we might want to position the suggestion at the beginning of the next line
+            // This is handled in the showInlineSuggestion function
+            debugLog(
+                "Suggestion would extend beyond visible area in textarea",
+                {
+                    shouldMoveToNextLine: true,
+                }
+            );
+        } else {
+            // For single-line inputs or when we don't want to move to the next line,
+            // scroll horizontally to make the suggestion visible
+            const newScrollLeft = Math.max(
+                0,
+                suggestionRight - boundaries.visibleAreaWidth + 40
+            );
+            field.scrollLeft = newScrollLeft;
+            debugLog("Scrolling to make suggestion visible (right)", {
+                newScrollLeft,
+            });
+        }
     }
 
     // Update the position of the suggestion element after scrolling
     if (suggestionElement) {
         const fieldRect = field.getBoundingClientRect();
-        const newTextWidth = getTextWidth(textBeforeCursor, fieldStyle.font);
+        const newTextWidth = getTextWidth(
+            textBeforeCursor,
+            boundaries.fieldStyle.font
+        );
 
-        // Update the position to account for the new scroll position
-        suggestionElement.style.left = `${
-            fieldRect.left + paddingLeft + newTextWidth - field.scrollLeft
-        }px`;
+        // Check if we should move the suggestion to the next line for multiline textareas
+        if (
+            field.tagName === "TEXTAREA" &&
+            shouldMoveToNextLine(
+                field,
+                cursorPosition,
+                suggestionText,
+                boundaries
+            )
+        ) {
+            // Calculate the position for the next line
+            const lineHeight =
+                parseFloat(boundaries.fieldStyle.lineHeight) ||
+                parseFloat(boundaries.fieldStyle.fontSize) * 1.2;
 
-        debugLog("Updated suggestion position after scrolling", {
-            left:
-                fieldRect.left + paddingLeft + newTextWidth - field.scrollLeft,
-        });
+            // Position at the beginning of the next line
+            suggestionElement.style.left = `${
+                fieldRect.left + boundaries.paddingLeft - field.scrollLeft
+            }px`;
+
+            suggestionElement.style.top = `${
+                parseFloat(suggestionElement.style.top) + lineHeight
+            }px`;
+
+            debugLog("Moved suggestion to next line", {
+                left:
+                    fieldRect.left + boundaries.paddingLeft - field.scrollLeft,
+                top: parseFloat(suggestionElement.style.top),
+                lineHeight: lineHeight,
+            });
+        } else {
+            // Update the position to account for the new scroll position
+            suggestionElement.style.left = `${
+                fieldRect.left +
+                boundaries.paddingLeft +
+                newTextWidth -
+                field.scrollLeft
+            }px`;
+
+            debugLog("Updated suggestion position after scrolling", {
+                left:
+                    fieldRect.left +
+                    boundaries.paddingLeft +
+                    newTextWidth -
+                    field.scrollLeft,
+            });
+        }
     }
 }
 
@@ -1694,21 +1915,50 @@ function ensureContentEditableSuggestionVisible(field, suggestionEl) {
     const fieldRect = field.getBoundingClientRect();
     const suggestionRect = suggestionEl.getBoundingClientRect();
 
+    // Get computed style of the field
+    const fieldStyle = window.getComputedStyle(field);
+    const paddingLeft = parseFloat(fieldStyle.paddingLeft) || 0;
+    const paddingRight = parseFloat(fieldStyle.paddingRight) || 0;
+    const paddingTop = parseFloat(fieldStyle.paddingTop) || 0;
+    const paddingBottom = parseFloat(fieldStyle.paddingBottom) || 0;
+
+    // Calculate the visible area boundaries accounting for padding
+    const visibleLeft = fieldRect.left + paddingLeft;
+    const visibleRight = fieldRect.right - paddingRight;
+    const visibleTop = fieldRect.top + paddingTop;
+    const visibleBottom = fieldRect.bottom - paddingBottom;
+
     // Check if the suggestion is within the visible area of the field
     const isVisible =
-        suggestionRect.left >= fieldRect.left &&
-        suggestionRect.right <= fieldRect.right &&
-        suggestionRect.top >= fieldRect.top &&
-        suggestionRect.bottom <= fieldRect.bottom;
+        suggestionRect.left >= visibleLeft &&
+        suggestionRect.right <= visibleRight &&
+        suggestionRect.top >= visibleTop &&
+        suggestionRect.bottom <= visibleBottom;
+
+    debugLog("Checking contentEditable suggestion visibility", {
+        isVisible,
+        suggestionRect: {
+            left: suggestionRect.left,
+            right: suggestionRect.right,
+            top: suggestionRect.top,
+            bottom: suggestionRect.bottom,
+        },
+        visibleBoundaries: {
+            left: visibleLeft,
+            right: visibleRight,
+            top: visibleTop,
+            bottom: visibleBottom,
+        },
+    });
 
     if (!isVisible) {
         // If the suggestion is not visible, we need to scroll the field
         // This is more complex for contentEditable elements as they don't have a standard scrollLeft property
 
         // Calculate how much we need to scroll horizontally
-        if (suggestionRect.right > fieldRect.right) {
+        if (suggestionRect.right > visibleRight) {
             // Suggestion extends beyond the right edge
-            const scrollAmount = suggestionRect.right - fieldRect.right + 20; // Add some padding
+            const scrollAmount = suggestionRect.right - visibleRight + 20; // Add some padding
 
             // Scroll the field if it has scrollLeft
             if (field.scrollLeft !== undefined) {
@@ -1728,12 +1978,55 @@ function ensureContentEditableSuggestionVisible(field, suggestionEl) {
                     scrollAmount,
                 });
             }
+            // If neither method works, try to find a scrollable parent
+            else {
+                const scrollableParent = findScrollableParent(field);
+                if (scrollableParent) {
+                    scrollableParent.scrollLeft += scrollAmount;
+                    debugLog("Scrolled contentEditable parent horizontally", {
+                        scrollAmount,
+                        newScrollLeft: scrollableParent.scrollLeft,
+                    });
+                }
+            }
+        }
+        // If suggestion is to the left of the visible area
+        else if (suggestionRect.left < visibleLeft) {
+            const scrollAmount = visibleLeft - suggestionRect.left + 20; // Add some padding
+
+            if (field.scrollLeft !== undefined) {
+                field.scrollLeft -= scrollAmount;
+                debugLog("Scrolled contentEditable horizontally (left)", {
+                    scrollAmount: -scrollAmount,
+                    newScrollLeft: field.scrollLeft,
+                });
+            } else if (field.scrollBy) {
+                field.scrollBy({
+                    left: -scrollAmount,
+                    behavior: "smooth",
+                });
+                debugLog("Used scrollBy for contentEditable (left)", {
+                    scrollAmount: -scrollAmount,
+                });
+            } else {
+                const scrollableParent = findScrollableParent(field);
+                if (scrollableParent) {
+                    scrollableParent.scrollLeft -= scrollAmount;
+                    debugLog(
+                        "Scrolled contentEditable parent horizontally (left)",
+                        {
+                            scrollAmount: -scrollAmount,
+                            newScrollLeft: scrollableParent.scrollLeft,
+                        }
+                    );
+                }
+            }
         }
 
         // Calculate how much we need to scroll vertically
-        if (suggestionRect.bottom > fieldRect.bottom) {
+        if (suggestionRect.bottom > visibleBottom) {
             // Suggestion extends beyond the bottom edge
-            const scrollAmount = suggestionRect.bottom - fieldRect.bottom + 20; // Add some padding
+            const scrollAmount = suggestionRect.bottom - visibleBottom + 20; // Add some padding
 
             // Scroll the field if it has scrollTop
             if (field.scrollTop !== undefined) {
@@ -1753,8 +2046,101 @@ function ensureContentEditableSuggestionVisible(field, suggestionEl) {
                     scrollAmount,
                 });
             }
+            // If neither method works, try to find a scrollable parent
+            else {
+                const scrollableParent = findScrollableParent(field);
+                if (scrollableParent) {
+                    scrollableParent.scrollTop += scrollAmount;
+                    debugLog("Scrolled contentEditable parent vertically", {
+                        scrollAmount,
+                        newScrollTop: scrollableParent.scrollTop,
+                    });
+                }
+            }
+        }
+        // If suggestion is above the visible area
+        else if (suggestionRect.top < visibleTop) {
+            const scrollAmount = visibleTop - suggestionRect.top + 20; // Add some padding
+
+            if (field.scrollTop !== undefined) {
+                field.scrollTop -= scrollAmount;
+                debugLog("Scrolled contentEditable vertically (up)", {
+                    scrollAmount: -scrollAmount,
+                    newScrollTop: field.scrollTop,
+                });
+            } else if (field.scrollBy) {
+                field.scrollBy({
+                    top: -scrollAmount,
+                    behavior: "smooth",
+                });
+                debugLog("Used scrollBy for contentEditable vertical (up)", {
+                    scrollAmount: -scrollAmount,
+                });
+            } else {
+                const scrollableParent = findScrollableParent(field);
+                if (scrollableParent) {
+                    scrollableParent.scrollTop -= scrollAmount;
+                    debugLog(
+                        "Scrolled contentEditable parent vertically (up)",
+                        {
+                            scrollAmount: -scrollAmount,
+                            newScrollTop: scrollableParent.scrollTop,
+                        }
+                    );
+                }
+            }
         }
     }
+}
+
+/**
+ * Find the nearest scrollable parent of an element
+ * @param {HTMLElement} element - The element
+ * @returns {HTMLElement|null} - The scrollable parent or null if none found
+ */
+function findScrollableParent(element) {
+    if (!element) return null;
+
+    // Check if the element itself is scrollable
+    if (isElementScrollable(element)) {
+        return element;
+    }
+
+    let parent = element.parentElement;
+    while (parent && parent !== document.body) {
+        if (isElementScrollable(parent)) {
+            return parent;
+        }
+        parent = parent.parentElement;
+    }
+
+    // If no scrollable parent found, return the document.body
+    return document.body;
+}
+
+/**
+ * Check if an element is scrollable
+ * @param {HTMLElement} element - The element to check
+ * @returns {boolean} - Whether the element is scrollable
+ */
+function isElementScrollable(element) {
+    if (!element) return false;
+
+    const style = window.getComputedStyle(element);
+
+    // Check if the element has overflow that allows scrolling
+    const hasScrollableOverflow =
+        style.overflowX === "auto" ||
+        style.overflowX === "scroll" ||
+        style.overflowY === "auto" ||
+        style.overflowY === "scroll";
+
+    // Check if the element actually has content that overflows
+    const hasOverflowingContent =
+        element.scrollWidth > element.clientWidth ||
+        element.scrollHeight > element.clientHeight;
+
+    return hasScrollableOverflow && hasOverflowingContent;
 }
 
 // Initialize the content script
