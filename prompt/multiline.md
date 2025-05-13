@@ -1,7 +1,6 @@
-Sometimes the ghost text suggestions are not visible at all because they are positioned outside the viewable region of the window. This creates a confusing user experience where users can still interact with these invisible suggestions via the 'Tab' key but cannot see them. This issue specifically occurs in two scenarios:
+Sometimes the ghost text suggestions are not visible at all because they are positioned outside the viewable region of the window. This creates a confusing user experience where users can still interact with these invisible suggestions via the 'Tab' key but cannot see them. This issue specifically occurs in scenarios:
 
 1. When the input field is multiline (like a textarea) and horizontal scrolling is not possible or enabled on that element
-2. When the input field is a textarea with fixed dimensions that doesn't automatically expand to show all content
 
 Please implement a solution that ensures ghost text suggestions are always visible within the boundaries of the input field, even in these specific scenarios. The solution should either reposition the suggestions to be visible or adjust the scrolling behavior of the container element.
 
@@ -15,7 +14,7 @@ In the FlowWrite browser extension, ghost text suggestions sometimes become comp
 
 This issue specifically occurs in two scenarios:
 1. When the input field is multiline (like a textarea) and text wraps to new lines, causing the ghost text to appear outside the horizontal boundaries
-2. When the input field has fixed dimensions with overflow settings that don't show scrollbars or automatically expand to accommodate all content
+2. When the input field has fixed dimensions with overflow settings that don't automatically expand to accommodate all content
 
 ## Required Solution
 Implement a comprehensive solution that ensures ghost text suggestions are always visible within the viewable boundaries of input fields by:
@@ -33,9 +32,7 @@ Implement a comprehensive solution that ensures ghost text suggestions are alway
 
 3. Add validation checks to:
    - Verify ghost text visibility after positioning
-   - Implement fallback positioning strategies if the primary approach fails
-   - Log detailed information about positioning decisions for debugging
 
 The solution must work consistently across different websites and maintain the existing functionality for standard input fields.
 
-Use sequential thinking MCP server. 
+Use sequential thinking MCP server.
