@@ -72,7 +72,7 @@ router.post("/suggest", async (req, res) => {
         // Prepare the content for the API request
         let contents = `**Role:** You are an AI inline writing assistant, like GitHub Copilot for general text.
 **Goal:** Predict the most likely and helpful text continuation based on the user's input. The suggestion should be contextually relevant, and natural-sounding.
-**Context:** This suggestion will appear inline in real-time as the user types in any web text field (email, chat, form, etc.). The user accepts it by pressing the **Tab** key.
+**Context:** This suggestion will appear inline in real-time as the user types in any web text field (email, chat, form, etc.). The user accepts it by pressing the **Tab** key or by clicking directly on the suggestion.
 **Output Requirements:**
 *   Return *only* the raw predicted text continuation after the user's cursor.
 *   Do *not* include any preamble, labels, explanations, or markdown formatting.
@@ -130,10 +130,13 @@ router.post("/suggest", async (req, res) => {
  *
  * Collects anonymous telemetry data about suggestion acceptance.
  * No user-identifiable data or text content is stored.
+ *
+ * @param {boolean} accepted - Whether the suggestion was accepted
+ * @param {string} interactionType - How the suggestion was accepted (tab, click, etc.)
  */
 router.post("/telemetry", async (req, res) => {
     try {
-        const { accepted } = req.body;
+        const { accepted, interactionType = "tab" } = req.body;
 
         // Only proceed if MongoDB is connected
         if (!process.env.MONGODB_URI) {
@@ -144,12 +147,24 @@ router.post("/telemetry", async (req, res) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
+        // Prepare the update object
+        const updateObj = {
+            $inc: {
+                acceptanceCount: accepted ? 1 : 0,
+                totalCount: 1,
+            },
+        };
+
+        // Track interaction types separately
+        if (accepted && interactionType) {
+            // Use MongoDB's dot notation to increment the specific interaction type counter
+            updateObj.$inc[`interactionTypes.${interactionType}`] = 1;
+        }
+
         // Update or create telemetry record for today
-        await Telemetry.findOneAndUpdate(
-            { date: today },
-            { $inc: { acceptanceCount: accepted ? 1 : 0, totalCount: 1 } },
-            { upsert: true }
-        );
+        await Telemetry.findOneAndUpdate({ date: today }, updateObj, {
+            upsert: true,
+        });
 
         return res.status(200).json({ message: "Telemetry recorded" });
     } catch (error) {

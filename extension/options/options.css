@@ -279,6 +279,25 @@ input[type="range"]::-moz-range-thumb {
     justify-content: flex-end;
 }
 
+/* Usage Instructions */
+.usage-instructions ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 12px 0;
+}
+
+.usage-instructions li {
+    margin-bottom: 12px;
+    display: flex;
+    align-items: flex-start;
+}
+
+.usage-instructions li strong {
+    min-width: 80px;
+    display: inline-block;
+    color: var(--primary-color);
+}
+
 /* Status Messages */
 .status-message {
     margin-top: 8px;

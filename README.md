@@ -11,7 +11,7 @@ Visit our [FlowWrite Website](https://chirag127.github.io/FlowWrite-Browser-Exte
 ## ✨ Features
 
 -   **Real-time AI Suggestions**: Get intelligent writing suggestions as you type, triggered by a brief pause.
--   **Seamless Integration**: Accept suggestions instantly with the 'Tab' key.
+-   **Seamless Integration**: Accept suggestions instantly with the 'Tab' key or by clicking directly on them.
 -   **Customizable Experience**: Configure suggestion delay, presentation style, and site-specific settings.
 -   **Privacy-Focused**: Your API key is stored securely in your browser and never on our servers.
 -   **Site-Specific Control**: Enable or disable FlowWrite on specific websites.
@@ -72,8 +72,10 @@ Visit our [FlowWrite Website](https://chirag127.github.io/FlowWrite-Browser-Exte
 
 1. Type in any text field on the web
 2. Pause briefly to see AI-powered suggestions
-3. Press 'Tab' to accept a suggestion or continue typing to ignore it
-4. Press 'Esc' to dismiss a suggestion
+3. Accept suggestions in one of two ways:
+    - Press the 'Tab' key to accept the suggestion
+    - Click directly on the suggestion (works for all suggestion types: inline, popup, and side panel)
+4. Press 'Esc' to dismiss a suggestion, or continue typing to ignore it
 
 ## ⚙️ Configuration Options
 
@@ -156,7 +158,7 @@ FlowWrite follows a client-server architecture:
     -   Response: `{ suggestion: string }`
 
 -   **POST /api/telemetry**: Records anonymous telemetry data
-    -   Request: `{ accepted: boolean }`
+    -   Request: `{ accepted: boolean, interactionType: string }`
     -   Response: `{ message: string }`
 
 ### Built With

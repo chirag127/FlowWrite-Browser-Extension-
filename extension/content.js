@@ -26,6 +26,7 @@ let debounceTimer = null;
 let currentSuggestion = null;
 let currentField = null;
 let suggestionElement = null;
+let inlineSuggestionElement = null; // For tracking the inline suggestion element in dual mode
 let isWaitingForSuggestion = false;
 let currentRequestId = 0; // Track the most recent request
 let suggestionAbortController = null; // For cancelling in-flight fetch requests
@@ -35,9 +36,24 @@ let suggestionAbortController = null; // For cancelling in-flight fetch requests
 const API_URL = "https://flowwrite-browser-extension.onrender.com/api";
 
 /**
+ * Inject the CSS file into the page
+ */
+function injectCSS() {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.type = "text/css";
+    link.href = chrome.runtime.getURL("content.css");
+    document.head.appendChild(link);
+    debugLog("CSS injected");
+}
+
+/**
  * Initialize the content script
  */
 function init() {
+    // Inject CSS
+    injectCSS();
+
     // Load configuration from storage
     chrome.storage.local.get(
         [
@@ -138,6 +154,46 @@ function addEventListeners() {
 
     // Listen for focus events to track the current field
     document.addEventListener("focusin", handleFocusIn);
+
+    // Add a global click handler to catch clicks on suggestions
+    document.addEventListener("click", handleGlobalClick, true);
+}
+
+/**
+ * Handle global click events to catch clicks on suggestions
+ * @param {MouseEvent} event - The click event
+ */
+function handleGlobalClick(event) {
+    // If there's no current suggestion, do nothing
+    if (!currentSuggestion) return;
+
+    // Check if the click target is a suggestion element or its child
+    const target = event.target;
+    if (
+        target &&
+        (target.classList.contains("flowwrite-suggestion-popup") ||
+            target.classList.contains("flowwrite-suggestion-sidepanel") ||
+            target.closest(".flowwrite-suggestion-popup") ||
+            target.closest(".flowwrite-suggestion-sidepanel"))
+    ) {
+        debugLog("Global click handler detected click on suggestion", {
+            target: target,
+            className: target.className,
+            suggestion:
+                currentSuggestion.substring(0, 20) +
+                (currentSuggestion.length > 20 ? "..." : ""),
+        });
+
+        // Prevent default behavior and stop propagation
+        event.preventDefault();
+        event.stopPropagation();
+
+        // Accept the suggestion
+        acceptSuggestion();
+
+        // Send telemetry data
+        sendTelemetry(true, "global-click");
+    }
 }
 
 /**
@@ -147,6 +203,7 @@ function removeEventListeners() {
     document.removeEventListener("input", handleInput);
     document.removeEventListener("keydown", handleKeydown);
     document.removeEventListener("focusin", handleFocusIn);
+    document.removeEventListener("click", handleGlobalClick, true);
 
     // Remove any active suggestions
     removeSuggestion();
@@ -249,7 +306,7 @@ function handleKeydown(event) {
         acceptSuggestion();
 
         // Send telemetry data
-        sendTelemetry(true);
+        sendTelemetry(true, "tab");
     }
 
     // If Esc is pressed, dismiss the suggestion
@@ -258,7 +315,7 @@ function handleKeydown(event) {
         removeSuggestion();
 
         // Send telemetry data
-        sendTelemetry(false);
+        sendTelemetry(false, "escape");
     }
 
     // If any other key is pressed, remove the suggestion
@@ -936,6 +993,9 @@ function showSuggestion(suggestion) {
         case "sidepanel":
             showSidePanelSuggestion(suggestion);
             break;
+        case "dual":
+            showDualSuggestion(suggestion);
+            break;
         default:
             showInlineSuggestion(suggestion);
     }
@@ -970,6 +1030,9 @@ function showInlineSuggestion(suggestion) {
         suggestionElement.style.pointerEvents = "none";
         suggestionElement.style.whiteSpace = "pre";
         suggestionElement.style.zIndex = "9999";
+
+        // Also store in inlineSuggestionElement for dual mode
+        inlineSuggestionElement = suggestionElement;
 
         // Calculate cursor position
         const cursorPosition = getCursorPosition(currentField);
@@ -1010,7 +1073,9 @@ function showInlineSuggestion(suggestion) {
         // Position the suggestion
         if (shouldWrapToNextLine) {
             // Position at the beginning of the next line
+            // Account for window scroll position
             suggestionElement.style.left = `${
+                window.scrollX +
                 boundaries.fieldRect.left +
                 boundaries.paddingLeft -
                 currentField.scrollLeft
@@ -1022,20 +1087,27 @@ function showInlineSuggestion(suggestion) {
                 boundaries.paddingTop +
                 (lineHeight - fontSizeInPx) / 2;
 
-            suggestionElement.style.top = `${currentLineTop + lineHeight}px`;
+            // Account for window scroll position
+            suggestionElement.style.top = `${
+                window.scrollY + currentLineTop + lineHeight
+            }px`;
 
             debugLog("Positioned suggestion at beginning of next line", {
                 cursorPosition: cursorPosition,
                 left:
+                    window.scrollX +
                     boundaries.fieldRect.left +
                     boundaries.paddingLeft -
                     currentField.scrollLeft,
-                top: currentLineTop + lineHeight,
+                top: window.scrollY + currentLineTop + lineHeight,
                 shouldWrapToNextLine: true,
+                windowScroll: { x: window.scrollX, y: window.scrollY },
             });
         } else {
             // Position after the cursor on the same line
+            // Account for window scroll position
             suggestionElement.style.left = `${
+                window.scrollX +
                 boundaries.fieldRect.left +
                 boundaries.paddingLeft +
                 textWidth -
@@ -1043,7 +1115,9 @@ function showInlineSuggestion(suggestion) {
             }px`;
 
             // Adjust vertical position to align with text baseline
+            // Account for window scroll position
             suggestionElement.style.top = `${
+                window.scrollY +
                 boundaries.fieldRect.top +
                 boundaries.paddingTop +
                 (lineHeight - fontSizeInPx) / 2
@@ -1054,15 +1128,18 @@ function showInlineSuggestion(suggestion) {
                 textWidth: textWidth,
                 scrollLeft: currentField.scrollLeft,
                 left:
+                    window.scrollX +
                     boundaries.fieldRect.left +
                     boundaries.paddingLeft +
                     textWidth -
                     currentField.scrollLeft,
                 top:
+                    window.scrollY +
                     boundaries.fieldRect.top +
                     boundaries.paddingTop +
                     (lineHeight - fontSizeInPx) / 2,
                 shouldWrapToNextLine: false,
+                windowScroll: { x: window.scrollX, y: window.scrollY },
             });
         }
 
@@ -1094,6 +1171,9 @@ function showInlineSuggestion(suggestion) {
         suggestionElement.style.pointerEvents = "none";
         suggestionElement.style.display = "inline"; // Ensure inline display
         suggestionElement.style.whiteSpace = "pre"; // Preserve whitespace
+
+        // Also store in inlineSuggestionElement for dual mode
+        inlineSuggestionElement = suggestionElement;
 
         // Get computed style of the field to match font properties
         const fieldStyle = window.getComputedStyle(currentField);
@@ -1147,24 +1227,150 @@ function showInlineSuggestion(suggestion) {
 function showPopupSuggestion(suggestion) {
     // Create a popup element
     suggestionElement = document.createElement("div");
-    suggestionElement.className = "flowwrite-suggestion-popup";
+    suggestionElement.className =
+        "flowwrite-suggestion-popup flowwrite-suggestion-base";
     suggestionElement.textContent = suggestion;
     suggestionElement.style.position = "absolute";
-    suggestionElement.style.backgroundColor = "#fff";
-    suggestionElement.style.border = "1px solid #ccc";
-    suggestionElement.style.borderRadius = "4px";
-    suggestionElement.style.padding = "8px";
-    suggestionElement.style.boxShadow = "0 2px 4px rgba(0, 0, 0, 0.2)";
-    suggestionElement.style.zIndex = "9999";
     suggestionElement.style.maxWidth = "300px";
+
+    // Add tooltip to indicate clickability
+    suggestionElement.title = "Click to accept suggestion";
+
+    // Add click event listener
+    suggestionElement.addEventListener("click", function (event) {
+        debugLog("Popup suggestion clicked", {
+            suggestion:
+                suggestion.substring(0, 20) +
+                (suggestion.length > 20 ? "..." : ""),
+            target: event.target,
+        });
+
+        // Prevent the event from propagating
+        event.preventDefault();
+        event.stopPropagation();
+
+        // Accept the suggestion
+        acceptSuggestion();
+
+        // Send telemetry data
+        sendTelemetry(true, "click");
+    });
+
+    // Add mousedown event listener as a fallback
+    suggestionElement.addEventListener("mousedown", function (event) {
+        debugLog("Popup suggestion mousedown", {
+            suggestion:
+                suggestion.substring(0, 20) +
+                (suggestion.length > 20 ? "..." : ""),
+            target: event.target,
+        });
+
+        // Prevent the event from propagating
+        event.preventDefault();
+        event.stopPropagation();
+
+        // Accept the suggestion
+        acceptSuggestion();
+
+        // Send telemetry data
+        sendTelemetry(true, "click");
+    });
 
     // Position the popup near the cursor
     const fieldRect = currentField.getBoundingClientRect();
-    suggestionElement.style.left = `${fieldRect.left}px`;
-    suggestionElement.style.top = `${fieldRect.bottom + 5}px`;
+    // Account for window scroll position
+    suggestionElement.style.left = `${window.scrollX + fieldRect.left}px`;
+    suggestionElement.style.top = `${window.scrollY + fieldRect.bottom + 5}px`;
 
     // Add the popup to the page
     document.body.appendChild(suggestionElement);
+
+    debugLog("Popup suggestion element created with click handlers", {
+        suggestion:
+            suggestion.substring(0, 20) + (suggestion.length > 20 ? "..." : ""),
+    });
+}
+
+/**
+ * Show both inline and popup suggestions simultaneously
+ * @param {string} suggestion - The suggestion to show
+ */
+function showDualSuggestion(suggestion) {
+    // First show the inline suggestion
+    showInlineSuggestion(suggestion);
+
+    // Store the inline suggestion element
+    const inlineElement = inlineSuggestionElement;
+
+    // Create a popup element
+    const popupElement = document.createElement("div");
+    popupElement.className =
+        "flowwrite-suggestion-popup flowwrite-suggestion-base";
+    popupElement.textContent = suggestion;
+    popupElement.style.position = "absolute";
+    popupElement.style.maxWidth = "300px";
+
+    // Add tooltip to indicate clickability
+    popupElement.title = "Click to accept suggestion";
+
+    // Add click event listener
+    popupElement.addEventListener("click", function (event) {
+        debugLog("Popup suggestion clicked in dual mode", {
+            suggestion:
+                suggestion.substring(0, 20) +
+                (suggestion.length > 20 ? "..." : ""),
+            target: event.target,
+        });
+
+        // Prevent the event from propagating
+        event.preventDefault();
+        event.stopPropagation();
+
+        // Accept the suggestion
+        acceptSuggestion();
+
+        // Send telemetry data
+        sendTelemetry(true, "click");
+    });
+
+    // Add mousedown event listener as a fallback
+    popupElement.addEventListener("mousedown", function (event) {
+        debugLog("Popup suggestion mousedown in dual mode", {
+            suggestion:
+                suggestion.substring(0, 20) +
+                (suggestion.length > 20 ? "..." : ""),
+            target: event.target,
+        });
+
+        // Prevent the event from propagating
+        event.preventDefault();
+        event.stopPropagation();
+
+        // Accept the suggestion
+        acceptSuggestion();
+
+        // Send telemetry data
+        sendTelemetry(true, "click");
+    });
+
+    // Position the popup near the cursor
+    const fieldRect = currentField.getBoundingClientRect();
+    // Account for window scroll position
+    popupElement.style.left = `${window.scrollX + fieldRect.left}px`;
+    popupElement.style.top = `${window.scrollY + fieldRect.bottom + 5}px`;
+
+    // Add the popup to the page
+    document.body.appendChild(popupElement);
+
+    // Set the popup element as the main suggestion element
+    suggestionElement = popupElement;
+
+    debugLog("Dual suggestion elements created with click handlers", {
+        suggestion:
+            suggestion.substring(0, 20) + (suggestion.length > 20 ? "..." : ""),
+        inlineElement: inlineElement ? true : false,
+        popupElement: popupElement ? true : false,
+    });
 }
 
 /**
@@ -1174,28 +1380,82 @@ function showPopupSuggestion(suggestion) {
 function showSidePanelSuggestion(suggestion) {
     // Create a side panel element
     suggestionElement = document.createElement("div");
-    suggestionElement.className = "flowwrite-suggestion-sidepanel";
-    suggestionElement.textContent = suggestion;
+    suggestionElement.className =
+        "flowwrite-suggestion-sidepanel flowwrite-suggestion-base";
     suggestionElement.style.position = "fixed";
     suggestionElement.style.top = "20px";
     suggestionElement.style.right = "20px";
     suggestionElement.style.width = "250px";
-    suggestionElement.style.backgroundColor = "#fff";
-    suggestionElement.style.border = "1px solid #ccc";
-    suggestionElement.style.borderRadius = "4px";
-    suggestionElement.style.padding = "16px";
-    suggestionElement.style.boxShadow = "0 2px 4px rgba(0, 0, 0, 0.2)";
-    suggestionElement.style.zIndex = "9999";
 
     // Add a header
     const header = document.createElement("div");
     header.textContent = "FlowWrite Suggestion";
     header.style.fontWeight = "bold";
     header.style.marginBottom = "8px";
-    suggestionElement.prepend(header);
+
+    // Add the suggestion text in a separate element
+    const content = document.createElement("div");
+    content.textContent = suggestion;
+    content.style.marginTop = "8px";
+
+    // Add an accept button
+    const acceptButton = document.createElement("button");
+    acceptButton.textContent = "Accept Suggestion";
+    acceptButton.className = "flowwrite-button";
+
+    // Add click event to the button
+    acceptButton.addEventListener("click", function (event) {
+        debugLog("Side panel accept button clicked", {
+            suggestion:
+                suggestion.substring(0, 20) +
+                (suggestion.length > 20 ? "..." : ""),
+        });
+
+        // Prevent the event from propagating
+        event.preventDefault();
+        event.stopPropagation();
+
+        // Accept the suggestion
+        acceptSuggestion();
+
+        // Send telemetry data
+        sendTelemetry(true, "click");
+    });
+
+    // Add click event to the entire panel
+    suggestionElement.addEventListener("click", function (event) {
+        // Only accept if the click is directly on the panel or content, not on the button
+        if (event.target === suggestionElement || event.target === content) {
+            debugLog("Side panel suggestion clicked", {
+                suggestion:
+                    suggestion.substring(0, 20) +
+                    (suggestion.length > 20 ? "..." : ""),
+                target: event.target,
+            });
+
+            // Accept the suggestion
+            acceptSuggestion();
+
+            // Send telemetry data
+            sendTelemetry(true, "click");
+        }
+    });
+
+    // Add tooltip to indicate clickability
+    suggestionElement.title = "Click to accept suggestion";
+
+    // Assemble the panel
+    suggestionElement.appendChild(header);
+    suggestionElement.appendChild(content);
+    suggestionElement.appendChild(acceptButton);
 
     // Add the side panel to the page
     document.body.appendChild(suggestionElement);
+
+    debugLog("Side panel suggestion element created with click handlers", {
+        suggestion:
+            suggestion.substring(0, 20) + (suggestion.length > 20 ? "..." : ""),
+    });
 }
 
 /**
@@ -1448,16 +1708,22 @@ function acceptSuggestion() {
  * Remove the current suggestion
  */
 function removeSuggestion() {
-    // If there's no suggestion element, do nothing
-    if (!suggestionElement) return;
+    // If there's no suggestion element and no inline suggestion element, do nothing
+    if (!suggestionElement && !inlineSuggestionElement) return;
 
-    // Remove the suggestion element
-    if (suggestionElement.parentNode) {
+    // Remove the main suggestion element
+    if (suggestionElement && suggestionElement.parentNode) {
         suggestionElement.parentNode.removeChild(suggestionElement);
     }
 
-    // Clear the suggestion element and current suggestion
+    // Remove the inline suggestion element if it exists
+    if (inlineSuggestionElement && inlineSuggestionElement.parentNode) {
+        inlineSuggestionElement.parentNode.removeChild(inlineSuggestionElement);
+    }
+
+    // Clear the suggestion elements and current suggestion
     suggestionElement = null;
+    inlineSuggestionElement = null;
     currentSuggestion = null;
 
     // Find and remove any other suggestion elements that might be lingering
@@ -1563,15 +1829,19 @@ function showErrorIndicator() {
 /**
  * Send telemetry data to the backend
  * @param {boolean} accepted - Whether the suggestion was accepted
+ * @param {string} interactionType - How the suggestion was accepted (tab, click, etc.)
  */
-function sendTelemetry(accepted) {
+function sendTelemetry(accepted, interactionType = "tab") {
     // Send the telemetry data
     fetch(`${API_URL}/telemetry`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
         },
-        body: JSON.stringify({ accepted }),
+        body: JSON.stringify({
+            accepted,
+            interactionType,
+        }),
     }).catch((error) => {
         console.error("FlowWrite: Error sending telemetry:", error);
     });
