@@ -1,18 +1,38 @@
 /**
  * FlowWrite Content CSS
- * 
+ *
  * Styles for the FlowWrite browser extension content script.
  * These styles are injected into the page to style the suggestion elements.
  */
 
 /* Common styles for all suggestion types */
 .flowwrite-suggestion-base {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+        Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
     color: #4a6ee0;
     cursor: pointer;
     pointer-events: auto;
     transition: background-color 0.2s, box-shadow 0.2s, color 0.2s;
     z-index: 99999;
+    user-select: none;
+}
+
+/* Inline suggestion styles */
+.flowwrite-suggestion {
+    color: #999 !important;
+    cursor: pointer !important;
+    pointer-events: auto !important;
+    transition: background-color 0.2s, opacity 0.2s !important;
+    z-index: 9999 !important;
+    user-select: none !important;
+    padding: 2px !important;
+    border-radius: 2px !important;
+}
+
+.flowwrite-suggestion:hover {
+    background-color: rgba(74, 110, 224, 0.1) !important;
+    color: #666 !important;
+    opacity: 0.95 !important;
 }
 
 /* Popup suggestion styles */
@@ -26,9 +46,11 @@
     max-width: 300px;
     font-size: 14px;
     line-height: 1.5;
-    cursor: pointer;
-    pointer-events: auto;
+    cursor: pointer !important;
+    pointer-events: auto !important;
     transition: background-color 0.2s, box-shadow 0.2s;
+    z-index: 99999 !important; /* Ensure it's on top of other elements */
+    user-select: none !important; /* Prevent text selection */
 }
 
 .flowwrite-suggestion-popup:hover {

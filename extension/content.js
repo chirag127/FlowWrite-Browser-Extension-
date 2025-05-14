@@ -157,6 +157,9 @@ function addEventListeners() {
 
     // Add a global click handler to catch clicks on suggestions
     document.addEventListener("click", handleGlobalClick, true);
+
+    // Add a global mousedown handler as a fallback for click detection
+    document.addEventListener("mousedown", handleGlobalMouseDown, true);
 }
 
 /**
@@ -171,14 +174,18 @@ function handleGlobalClick(event) {
     const target = event.target;
     if (
         target &&
-        (target.classList.contains("flowwrite-suggestion-popup") ||
+        (target.classList.contains("flowwrite-suggestion") ||
+            target.classList.contains("flowwrite-suggestion-popup") ||
             target.classList.contains("flowwrite-suggestion-sidepanel") ||
+            target.closest(".flowwrite-suggestion") ||
             target.closest(".flowwrite-suggestion-popup") ||
             target.closest(".flowwrite-suggestion-sidepanel"))
     ) {
         debugLog("Global click handler detected click on suggestion", {
             target: target,
+            tagName: target.tagName,
             className: target.className,
+            eventPhase: event.eventPhase,
             suggestion:
                 currentSuggestion.substring(0, 20) +
                 (currentSuggestion.length > 20 ? "..." : ""),
@@ -197,6 +204,47 @@ function handleGlobalClick(event) {
 }
 
 /**
+ * Handle global mousedown events as a fallback for click detection
+ * @param {MouseEvent} event - The mousedown event
+ */
+function handleGlobalMouseDown(event) {
+    // If there's no current suggestion, do nothing
+    if (!currentSuggestion) return;
+
+    // Check if the mousedown target is a suggestion element or its child
+    const target = event.target;
+    if (
+        target &&
+        (target.classList.contains("flowwrite-suggestion") ||
+            target.classList.contains("flowwrite-suggestion-popup") ||
+            target.classList.contains("flowwrite-suggestion-sidepanel") ||
+            target.closest(".flowwrite-suggestion") ||
+            target.closest(".flowwrite-suggestion-popup") ||
+            target.closest(".flowwrite-suggestion-sidepanel"))
+    ) {
+        debugLog("Global mousedown handler detected click on suggestion", {
+            target: target,
+            tagName: target.tagName,
+            className: target.className,
+            eventPhase: event.eventPhase,
+            suggestion:
+                currentSuggestion.substring(0, 20) +
+                (currentSuggestion.length > 20 ? "..." : ""),
+        });
+
+        // Prevent default behavior and stop propagation
+        event.preventDefault();
+        event.stopPropagation();
+
+        // Accept the suggestion
+        acceptSuggestion();
+
+        // Send telemetry data
+        sendTelemetry(true, "global-mousedown");
+    }
+}
+
+/**
  * Remove event listeners from the page
  */
 function removeEventListeners() {
@@ -204,6 +252,7 @@ function removeEventListeners() {
     document.removeEventListener("keydown", handleKeydown);
     document.removeEventListener("focusin", handleFocusIn);
     document.removeEventListener("click", handleGlobalClick, true);
+    document.removeEventListener("mousedown", handleGlobalMouseDown, true);
 
     // Remove any active suggestions
     removeSuggestion();
@@ -1022,14 +1071,69 @@ function showInlineSuggestion(suggestion) {
     ) {
         // Create a span element for the suggestion
         suggestionElement = document.createElement("span");
-        suggestionElement.className = "flowwrite-suggestion";
+        suggestionElement.className =
+            "flowwrite-suggestion flowwrite-suggestion-base";
         suggestionElement.textContent = suggestion;
         suggestionElement.style.position = "absolute";
         suggestionElement.style.color = "#999";
-        suggestionElement.style.backgroundColor = "transparent";
-        suggestionElement.style.pointerEvents = "none";
+        suggestionElement.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
+        suggestionElement.style.pointerEvents = "auto"; // Make it clickable
+        suggestionElement.style.cursor = "pointer"; // Show pointer cursor
         suggestionElement.style.whiteSpace = "pre";
         suggestionElement.style.zIndex = "9999";
+        suggestionElement.style.userSelect = "none"; // Prevent text selection
+        suggestionElement.style.padding = "2px"; // Add padding to increase clickable area
+
+        // Add tooltip to indicate clickability
+        suggestionElement.title = "Click to accept suggestion";
+
+        // Add click event listener
+        suggestionElement.addEventListener(
+            "click",
+            function (event) {
+                debugLog("Inline suggestion clicked", {
+                    suggestion:
+                        suggestion.substring(0, 20) +
+                        (suggestion.length > 20 ? "..." : ""),
+                    target: event.target,
+                });
+
+                // Prevent the event from propagating
+                event.preventDefault();
+                event.stopPropagation();
+
+                // Accept the suggestion
+                acceptSuggestion();
+
+                // Send telemetry data
+                sendTelemetry(true, "click");
+            },
+            true
+        ); // Use capture phase
+
+        // Add mousedown event as a fallback
+        suggestionElement.addEventListener(
+            "mousedown",
+            function (event) {
+                debugLog("Inline suggestion mousedown", {
+                    suggestion:
+                        suggestion.substring(0, 20) +
+                        (suggestion.length > 20 ? "..." : ""),
+                    target: event.target,
+                });
+
+                // Prevent the event from propagating
+                event.preventDefault();
+                event.stopPropagation();
+
+                // Accept the suggestion
+                acceptSuggestion();
+
+                // Send telemetry data
+                sendTelemetry(true, "mousedown");
+            },
+            true
+        ); // Use capture phase
 
         // Also store in inlineSuggestionElement for dual mode
         inlineSuggestionElement = suggestionElement;
@@ -1164,13 +1268,69 @@ function showInlineSuggestion(suggestion) {
     else if (currentField.isContentEditable) {
         // Create a span element for the suggestion
         suggestionElement = document.createElement("span");
-        suggestionElement.className = "flowwrite-suggestion";
+        suggestionElement.className =
+            "flowwrite-suggestion flowwrite-suggestion-base";
         suggestionElement.textContent = suggestion;
         suggestionElement.style.color = "#999";
-        suggestionElement.style.backgroundColor = "transparent";
-        suggestionElement.style.pointerEvents = "none";
+        suggestionElement.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
+        suggestionElement.style.pointerEvents = "auto"; // Make it clickable
+        suggestionElement.style.cursor = "pointer"; // Show pointer cursor
         suggestionElement.style.display = "inline"; // Ensure inline display
         suggestionElement.style.whiteSpace = "pre"; // Preserve whitespace
+        suggestionElement.style.userSelect = "none"; // Prevent text selection
+        suggestionElement.style.padding = "2px"; // Add padding to increase clickable area
+        suggestionElement.style.zIndex = "9999"; // Ensure it's on top
+
+        // Add tooltip to indicate clickability
+        suggestionElement.title = "Click to accept suggestion";
+
+        // Add click event listener
+        suggestionElement.addEventListener(
+            "click",
+            function (event) {
+                debugLog("Inline contentEditable suggestion clicked", {
+                    suggestion:
+                        suggestion.substring(0, 20) +
+                        (suggestion.length > 20 ? "..." : ""),
+                    target: event.target,
+                });
+
+                // Prevent the event from propagating
+                event.preventDefault();
+                event.stopPropagation();
+
+                // Accept the suggestion
+                acceptSuggestion();
+
+                // Send telemetry data
+                sendTelemetry(true, "click");
+            },
+            true
+        ); // Use capture phase
+
+        // Add mousedown event as a fallback
+        suggestionElement.addEventListener(
+            "mousedown",
+            function (event) {
+                debugLog("Inline contentEditable suggestion mousedown", {
+                    suggestion:
+                        suggestion.substring(0, 20) +
+                        (suggestion.length > 20 ? "..." : ""),
+                    target: event.target,
+                });
+
+                // Prevent the event from propagating
+                event.preventDefault();
+                event.stopPropagation();
+
+                // Accept the suggestion
+                acceptSuggestion();
+
+                // Send telemetry data
+                sendTelemetry(true, "mousedown");
+            },
+            true
+        ); // Use capture phase
 
         // Also store in inlineSuggestionElement for dual mode
         inlineSuggestionElement = suggestionElement;
@@ -1236,45 +1396,61 @@ function showPopupSuggestion(suggestion) {
     // Add tooltip to indicate clickability
     suggestionElement.title = "Click to accept suggestion";
 
-    // Add click event listener
-    suggestionElement.addEventListener("click", function (event) {
-        debugLog("Popup suggestion clicked", {
-            suggestion:
-                suggestion.substring(0, 20) +
-                (suggestion.length > 20 ? "..." : ""),
-            target: event.target,
-        });
+    // Add multiple event listeners to ensure clicks are captured
+    suggestionElement.addEventListener(
+        "click",
+        function (event) {
+            debugLog("Popup suggestion clicked", {
+                suggestion:
+                    suggestion.substring(0, 20) +
+                    (suggestion.length > 20 ? "..." : ""),
+                target: event.target,
+                currentTarget: event.currentTarget,
+                eventPhase: event.eventPhase,
+            });
 
-        // Prevent the event from propagating
-        event.preventDefault();
-        event.stopPropagation();
+            // Prevent the event from propagating
+            event.preventDefault();
+            event.stopPropagation();
 
-        // Accept the suggestion
-        acceptSuggestion();
+            // Accept the suggestion
+            acceptSuggestion();
 
-        // Send telemetry data
-        sendTelemetry(true, "click");
-    });
+            // Send telemetry data
+            sendTelemetry(true, "click");
+        },
+        true
+    ); // Use capture phase
 
-    // Add mousedown event listener as a fallback
-    suggestionElement.addEventListener("mousedown", function (event) {
-        debugLog("Popup suggestion mousedown", {
-            suggestion:
-                suggestion.substring(0, 20) +
-                (suggestion.length > 20 ? "..." : ""),
-            target: event.target,
-        });
+    // Add mousedown event as a fallback
+    suggestionElement.addEventListener(
+        "mousedown",
+        function (event) {
+            debugLog("Popup suggestion mousedown", {
+                suggestion:
+                    suggestion.substring(0, 20) +
+                    (suggestion.length > 20 ? "..." : ""),
+                target: event.target,
+                currentTarget: event.currentTarget,
+                eventPhase: event.eventPhase,
+            });
 
-        // Prevent the event from propagating
-        event.preventDefault();
-        event.stopPropagation();
+            // Prevent the event from propagating
+            event.preventDefault();
+            event.stopPropagation();
 
-        // Accept the suggestion
-        acceptSuggestion();
+            // Accept the suggestion
+            acceptSuggestion();
 
-        // Send telemetry data
-        sendTelemetry(true, "click");
-    });
+            // Send telemetry data
+            sendTelemetry(true, "mousedown");
+
+            // Add visual feedback for the click
+            suggestionElement.style.backgroundColor = "#e0e9ff";
+            suggestionElement.style.boxShadow = "0 2px 4px rgba(0, 0, 0, 0.2)";
+        },
+        true
+    ); // Use capture phase
 
     // Position the popup near the cursor
     const fieldRect = currentField.getBoundingClientRect();
