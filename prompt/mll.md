@@ -51,10 +51,21 @@ Implement proper vertical scrolling with the following specific requirements:
 
 2. **When a suggestion is accepted:** After the user accepts a suggestion (via Tab key or by clicking on it), the input field should automatically scroll to ensure the cursor's new position is fully visible within the viewport.
 
-3. **During continuous typing:** When the user is typing near the bottom of the input field and a new suggestion appears, the field should automatically scroll to keep both the user's text and the suggestion visible.
+3. **Smooth scrolling behavior:** All scrolling actions should use smooth animation (approximately 250ms duration) rather than jumping instantly to the new scroll position.
 
-4. **Smooth scrolling behavior:** All scrolling actions should use smooth animation (approximately 250ms duration) rather than jumping instantly to the new scroll position.
-
-5. **Cross-element compatibility:** This functionality must work consistently across all types of multiline input elements (textareas, contenteditable divs, and rich text editors).
+4. **Cross-element compatibility:** This functionality must work consistently across all types of multiline input elements (textareas, contenteditable divs, and rich text editors).
 
 Please ensure this vertical scrolling functionality is properly implemented alongside the existing horizontal scrolling capabilities.
+-------------
+
+After the user accepts a suggestion (via Tab key or by clicking on it), the input field should automatically scroll down to ensure the cursor's new position is fully visible within the viewport.
+
+After the user accepts a ghost text suggestion (via Tab key or by clicking on it), the input field should automatically scroll to ensure the cursor's new position is fully visible. This should:
+
+1. Work for both single-line and multiline input fields (including textareas and contentEditable elements)
+2. Support both vertical scrolling (when content extends below the visible area) and horizontal scrolling (for single-line inputs with overflow)
+3. Use smooth scrolling animation for a polished user experience
+4. Maintain proper text flow and prevent any visual jumping or flickering
+5. Handle all input types consistently across different websites
+6. Ensure the cursor remains visible even when accepting long suggestions that would otherwise push the cursor out of view
+7. Prioritize showing the current line where the cursor is positioned before wrapping to subsequent lines

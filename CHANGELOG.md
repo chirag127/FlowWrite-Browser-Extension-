@@ -5,6 +5,27 @@ All notable changes to the FlowWrite Browser Extension will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.5] - 2025-05-15
+
+### Fixed
+
+-   Enhanced automatic scrolling after ghost text suggestion acceptance to ensure cursor visibility
+-   Improved vertical scrolling in multiline input fields with proper cursor position tracking
+-   Added small delay before scrolling to ensure cursor position is updated correctly
+-   Fixed scrolling issues in contentEditable elements by adding fallback to window scrolling
+-   Ensured consistent 20px buffer margin is maintained in all scrolling scenarios
+-   Improved cross-browser compatibility for smooth scrolling animations
+
+## [1.0.4] - 2025-05-30
+
+### Fixed
+
+-   Implemented proper vertical scrolling for ghost text suggestions in multiline input fields
+-   Added automatic scrolling when suggestions appear at or near the bottom of the input field
+-   Ensured cursor remains visible after accepting suggestions with smooth scrolling animation
+-   Maintained a consistent 20px buffer margin for better readability
+-   Improved cross-element compatibility for vertical scrolling across different input types
+
 ## [1.0.3] - 2025-05-25
 
 ### Fixed
