@@ -30,6 +30,8 @@ let inlineSuggestionElement = null; // For tracking the inline suggestion elemen
 let isWaitingForSuggestion = false;
 let currentRequestId = 0; // Track the most recent request
 let suggestionAbortController = null; // For cancelling in-flight fetch requests
+let contentEditableMutationObserver = null; // For tracking changes to ContentEditable elements
+let contentEditableOriginalRange = null; // For storing the original selection range in ContentEditable elements
 
 // Backend API URL (should be configurable in production)
 // const API_URL = "http://192.168.31.232:3000/api";
@@ -160,6 +162,106 @@ function addEventListeners() {
 
     // Add a global mousedown handler as a fallback for click detection
     document.addEventListener("mousedown", handleGlobalMouseDown, true);
+
+    // Add touch event handlers for mobile/touch devices
+    document.addEventListener("touchstart", handleGlobalTouchStart, true);
+    document.addEventListener("touchend", handleGlobalTouchEnd, true);
+}
+
+/**
+ * Handle global touchstart events for mobile/touch devices
+ * @param {TouchEvent} event - The touchstart event
+ */
+function handleGlobalTouchStart(event) {
+    // If there's no current suggestion, do nothing
+    if (!currentSuggestion) return;
+
+    // Check if the touch target is a suggestion element
+    if (event.touches && event.touches.length > 0) {
+        const touch = event.touches[0];
+        const target = touch.target;
+
+        // Use the same detection logic as in click/mousedown handlers
+        const isSuggestionElement =
+            (target &&
+                (target.classList.contains("flowwrite-suggestion") ||
+                    target.classList.contains("flowwrite-suggestion-popup") ||
+                    target.classList.contains(
+                        "flowwrite-suggestion-sidepanel"
+                    ) ||
+                    target.closest(".flowwrite-suggestion") ||
+                    target.closest(".flowwrite-suggestion-popup") ||
+                    target.closest(".flowwrite-suggestion-sidepanel"))) ||
+            (suggestionElement &&
+                (target === suggestionElement ||
+                    suggestionElement.contains(target)));
+
+        if (isSuggestionElement) {
+            // Store the touch target for touchend verification
+            window.flowwriteTouchTarget = target;
+
+            debugLog("Global touchstart handler detected touch on suggestion", {
+                target: target,
+                tagName: target.tagName,
+                className: target.className,
+                suggestion:
+                    currentSuggestion.substring(0, 20) +
+                    (currentSuggestion.length > 20 ? "..." : ""),
+            });
+
+            // Prevent default to avoid scrolling/zooming
+            event.preventDefault();
+        }
+    }
+}
+
+/**
+ * Handle global touchend events for mobile/touch devices
+ * @param {TouchEvent} event - The touchend event
+ */
+function handleGlobalTouchEnd(event) {
+    // If there's no current suggestion or stored touch target, do nothing
+    if (!currentSuggestion || !window.flowwriteTouchTarget) return;
+
+    // Check if the touch target is still a suggestion element
+    const target = event.target;
+
+    // Use the same detection logic as in click/mousedown handlers
+    const isSuggestionElement =
+        (target &&
+            (target.classList.contains("flowwrite-suggestion") ||
+                target.classList.contains("flowwrite-suggestion-popup") ||
+                target.classList.contains("flowwrite-suggestion-sidepanel") ||
+                target.closest(".flowwrite-suggestion") ||
+                target.closest(".flowwrite-suggestion-popup") ||
+                target.closest(".flowwrite-suggestion-sidepanel"))) ||
+        (suggestionElement &&
+            (target === suggestionElement ||
+                suggestionElement.contains(target)));
+
+    if (isSuggestionElement) {
+        debugLog("Global touchend handler detected touch on suggestion", {
+            target: target,
+            tagName: target.tagName,
+            className: target.className,
+            suggestion:
+                currentSuggestion.substring(0, 20) +
+                (currentSuggestion.length > 20 ? "..." : ""),
+        });
+
+        // Prevent default behavior
+        event.preventDefault();
+        event.stopPropagation();
+
+        // Accept the suggestion
+        acceptSuggestion();
+
+        // Send telemetry data
+        sendTelemetry(true, "touch");
+    }
+
+    // Clear the stored touch target
+    window.flowwriteTouchTarget = null;
 }
 
 /**
@@ -172,15 +274,24 @@ function handleGlobalClick(event) {
 
     // Check if the click target is a suggestion element or its child
     const target = event.target;
-    if (
-        target &&
-        (target.classList.contains("flowwrite-suggestion") ||
-            target.classList.contains("flowwrite-suggestion-popup") ||
-            target.classList.contains("flowwrite-suggestion-sidepanel") ||
-            target.closest(".flowwrite-suggestion") ||
-            target.closest(".flowwrite-suggestion-popup") ||
-            target.closest(".flowwrite-suggestion-sidepanel"))
-    ) {
+
+    // Enhanced detection for suggestion elements
+    const isSuggestionElement =
+        // Direct class check
+        (target &&
+            (target.classList.contains("flowwrite-suggestion") ||
+                target.classList.contains("flowwrite-suggestion-popup") ||
+                target.classList.contains("flowwrite-suggestion-sidepanel") ||
+                // Check for parent elements with these classes
+                target.closest(".flowwrite-suggestion") ||
+                target.closest(".flowwrite-suggestion-popup") ||
+                target.closest(".flowwrite-suggestion-sidepanel"))) ||
+        // Check if the target is our suggestion element or a child of it
+        (suggestionElement &&
+            (target === suggestionElement ||
+                suggestionElement.contains(target)));
+
+    if (isSuggestionElement) {
         debugLog("Global click handler detected click on suggestion", {
             target: target,
             tagName: target.tagName,
@@ -189,6 +300,7 @@ function handleGlobalClick(event) {
             suggestion:
                 currentSuggestion.substring(0, 20) +
                 (currentSuggestion.length > 20 ? "..." : ""),
+            isSuggestionElement: true,
         });
 
         // Prevent default behavior and stop propagation
@@ -200,6 +312,9 @@ function handleGlobalClick(event) {
 
         // Send telemetry data
         sendTelemetry(true, "global-click");
+
+        // Return false to prevent default behavior
+        return false;
     }
 }
 
@@ -213,15 +328,24 @@ function handleGlobalMouseDown(event) {
 
     // Check if the mousedown target is a suggestion element or its child
     const target = event.target;
-    if (
-        target &&
-        (target.classList.contains("flowwrite-suggestion") ||
-            target.classList.contains("flowwrite-suggestion-popup") ||
-            target.classList.contains("flowwrite-suggestion-sidepanel") ||
-            target.closest(".flowwrite-suggestion") ||
-            target.closest(".flowwrite-suggestion-popup") ||
-            target.closest(".flowwrite-suggestion-sidepanel"))
-    ) {
+
+    // Enhanced detection for suggestion elements - same as in handleGlobalClick
+    const isSuggestionElement =
+        // Direct class check
+        (target &&
+            (target.classList.contains("flowwrite-suggestion") ||
+                target.classList.contains("flowwrite-suggestion-popup") ||
+                target.classList.contains("flowwrite-suggestion-sidepanel") ||
+                // Check for parent elements with these classes
+                target.closest(".flowwrite-suggestion") ||
+                target.closest(".flowwrite-suggestion-popup") ||
+                target.closest(".flowwrite-suggestion-sidepanel"))) ||
+        // Check if the target is our suggestion element or a child of it
+        (suggestionElement &&
+            (target === suggestionElement ||
+                suggestionElement.contains(target)));
+
+    if (isSuggestionElement) {
         debugLog("Global mousedown handler detected click on suggestion", {
             target: target,
             tagName: target.tagName,
@@ -230,6 +354,7 @@ function handleGlobalMouseDown(event) {
             suggestion:
                 currentSuggestion.substring(0, 20) +
                 (currentSuggestion.length > 20 ? "..." : ""),
+            isSuggestionElement: true,
         });
 
         // Prevent default behavior and stop propagation
@@ -241,6 +366,9 @@ function handleGlobalMouseDown(event) {
 
         // Send telemetry data
         sendTelemetry(true, "global-mousedown");
+
+        // Return false to prevent default behavior
+        return false;
     }
 }
 
@@ -253,12 +381,17 @@ function removeEventListeners() {
     document.removeEventListener("focusin", handleFocusIn);
     document.removeEventListener("click", handleGlobalClick, true);
     document.removeEventListener("mousedown", handleGlobalMouseDown, true);
+    document.removeEventListener("touchstart", handleGlobalTouchStart, true);
+    document.removeEventListener("touchend", handleGlobalTouchEnd, true);
 
     // Remove any active suggestions
     removeSuggestion();
 
     // Disconnect mutation observer
     disconnectMutationObserver();
+
+    // Clear any stored touch targets
+    window.flowwriteTouchTarget = null;
 }
 
 /**
@@ -1280,57 +1413,83 @@ function showInlineSuggestion(suggestion) {
         suggestionElement.style.userSelect = "none"; // Prevent text selection
         suggestionElement.style.padding = "2px"; // Add padding to increase clickable area
         suggestionElement.style.zIndex = "9999"; // Ensure it's on top
+        suggestionElement.style.position = "relative"; // Ensure proper stacking context
 
         // Add tooltip to indicate clickability
         suggestionElement.title = "Click to accept suggestion";
 
-        // Add click event listener
+        // Enhanced click handling for ContentEditable elements
+        const handleSuggestionClick = function (event) {
+            debugLog("Inline contentEditable suggestion clicked/touched", {
+                suggestion:
+                    suggestion.substring(0, 20) +
+                    (suggestion.length > 20 ? "..." : ""),
+                target: event.target,
+                type: event.type,
+                eventPhase: event.eventPhase,
+            });
+
+            // Prevent the event from propagating
+            event.preventDefault();
+            event.stopPropagation();
+
+            // Accept the suggestion
+            acceptSuggestion();
+
+            // Send telemetry data
+            sendTelemetry(true, event.type);
+
+            // Return false to prevent default behavior
+            return false;
+        };
+
+        // Add multiple event listeners to ensure clicks are captured
+        // Use both capture and bubbling phase to maximize chances of catching the event
         suggestionElement.addEventListener(
             "click",
-            function (event) {
-                debugLog("Inline contentEditable suggestion clicked", {
-                    suggestion:
-                        suggestion.substring(0, 20) +
-                        (suggestion.length > 20 ? "..." : ""),
-                    target: event.target,
-                });
-
-                // Prevent the event from propagating
-                event.preventDefault();
-                event.stopPropagation();
-
-                // Accept the suggestion
-                acceptSuggestion();
-
-                // Send telemetry data
-                sendTelemetry(true, "click");
-            },
+            handleSuggestionClick,
             true
-        ); // Use capture phase
-
-        // Add mousedown event as a fallback
+        );
+        suggestionElement.addEventListener(
+            "click",
+            handleSuggestionClick,
+            false
+        );
         suggestionElement.addEventListener(
             "mousedown",
-            function (event) {
-                debugLog("Inline contentEditable suggestion mousedown", {
-                    suggestion:
-                        suggestion.substring(0, 20) +
-                        (suggestion.length > 20 ? "..." : ""),
-                    target: event.target,
-                });
-
-                // Prevent the event from propagating
-                event.preventDefault();
-                event.stopPropagation();
-
-                // Accept the suggestion
-                acceptSuggestion();
-
-                // Send telemetry data
-                sendTelemetry(true, "mousedown");
-            },
+            handleSuggestionClick,
             true
-        ); // Use capture phase
+        );
+        suggestionElement.addEventListener(
+            "mousedown",
+            handleSuggestionClick,
+            false
+        );
+        suggestionElement.addEventListener(
+            "touchstart",
+            handleSuggestionClick,
+            true
+        );
+        suggestionElement.addEventListener(
+            "touchend",
+            handleSuggestionClick,
+            true
+        );
+
+        // Add inline onclick attribute as a fallback
+        suggestionElement.setAttribute(
+            "onclick",
+            "this.classList.add('clicked'); return false;"
+        );
+
+        // Add a visual hover effect to indicate clickability
+        suggestionElement.style.transition = "background-color 0.2s ease";
+        suggestionElement.addEventListener("mouseover", function () {
+            this.style.backgroundColor = "rgba(200, 200, 255, 0.3)";
+        });
+        suggestionElement.addEventListener("mouseout", function () {
+            this.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
+        });
 
         // Also store in inlineSuggestionElement for dual mode
         inlineSuggestionElement = suggestionElement;
@@ -1342,40 +1501,115 @@ function showInlineSuggestion(suggestion) {
         suggestionElement.style.fontWeight = fieldStyle.fontWeight;
         suggestionElement.style.lineHeight = fieldStyle.lineHeight;
 
-        // Insert the suggestion after the cursor
+        // Instead of inserting the suggestion element directly into the ContentEditable element,
+        // we'll create an absolutely positioned overlay that follows the cursor position
         const selection = window.getSelection();
         if (selection.rangeCount > 0) {
-            // Store the original selection to restore it later
-            const originalRange = selection.getRangeAt(0).cloneRange();
+            // Get the current selection range
+            const range = selection.getRangeAt(0);
 
-            // Create a new range at the cursor position
-            const range = originalRange.cloneRange();
+            // Get the client rectangle of the current cursor position
+            const cursorRect = range.getBoundingClientRect();
 
-            // Ensure we're at the exact cursor position
-            range.collapse(false); // Collapse to the end point (cursor position)
+            // Store the original range for later use
+            contentEditableOriginalRange = range.cloneRange();
 
-            // Insert the suggestion at the cursor position
-            range.insertNode(suggestionElement);
+            // Make the suggestion element absolutely positioned
+            suggestionElement.style.position = "absolute";
+            suggestionElement.style.zIndex = "2147483647"; // Maximum z-index
 
-            // Move the cursor back to where it was before inserting the suggestion
-            // This ensures the cursor stays where it was and the suggestion appears after it
-            selection.removeAllRanges();
-            selection.addRange(originalRange);
+            // Position the suggestion element right after the cursor
+            suggestionElement.style.left = `${
+                window.scrollX + cursorRect.right
+            }px`;
+            suggestionElement.style.top = `${
+                window.scrollY + cursorRect.top
+            }px`;
 
-            debugLog("Positioned suggestion in contentEditable", {
-                cursorPosition: "at cursor",
-                suggestionElement:
-                    suggestionElement.textContent.substring(0, 20) +
-                    (suggestionElement.textContent.length > 20 ? "..." : ""),
+            // Add the suggestion element to the document body instead of inside the ContentEditable
+            document.body.appendChild(suggestionElement);
+
+            // Store a reference to the ContentEditable element and cursor position
+            suggestionElement.dataset.targetElement = "contentEditable";
+
+            // Add a special class to identify this as a ContentEditable suggestion
+            suggestionElement.classList.add(
+                "flowwrite-contenteditable-suggestion"
+            );
+
+            // Add a data attribute with the selection information for debugging
+            suggestionElement.dataset.selectionInfo = JSON.stringify({
+                startContainer: range.startContainer.nodeName,
+                startOffset: range.startOffset,
+                endContainer: range.endContainer.nodeName,
+                endOffset: range.endOffset,
             });
 
-            // For contentEditable elements, we need to ensure the suggestion is visible
-            // by scrolling the element if necessary
-            // This is critical to ensure the suggestion is visible immediately when displayed
-            ensureContentEditableSuggestionVisible(
-                currentField,
-                suggestionElement
+            debugLog("Positioned suggestion for contentEditable as overlay", {
+                cursorPosition: {
+                    left: cursorRect.left,
+                    top: cursorRect.top,
+                    right: cursorRect.right,
+                    bottom: cursorRect.bottom,
+                },
+                suggestionElement: {
+                    text:
+                        suggestionElement.textContent.substring(0, 20) +
+                        (suggestionElement.textContent.length > 20
+                            ? "..."
+                            : ""),
+                    left: suggestionElement.style.left,
+                    top: suggestionElement.style.top,
+                },
+            });
+
+            // Ensure the suggestion is visible
+            ensureElementVisibleInViewport(suggestionElement);
+
+            // Add a MutationObserver to track changes to the ContentEditable element
+            // This helps us reposition the suggestion if the ContentEditable content changes
+            if (contentEditableMutationObserver) {
+                contentEditableMutationObserver.disconnect();
+            }
+
+            contentEditableMutationObserver = new MutationObserver(
+                (mutations) => {
+                    // If the suggestion is no longer visible, don't bother updating
+                    if (
+                        !suggestionElement ||
+                        !document.body.contains(suggestionElement)
+                    ) {
+                        contentEditableMutationObserver.disconnect();
+                        return;
+                    }
+
+                    // Get the current selection
+                    const currentSelection = window.getSelection();
+                    if (currentSelection.rangeCount > 0) {
+                        const currentRange = currentSelection.getRangeAt(0);
+                        const newCursorRect =
+                            currentRange.getBoundingClientRect();
+
+                        // Update the position of the suggestion element
+                        suggestionElement.style.left = `${
+                            window.scrollX + newCursorRect.right
+                        }px`;
+                        suggestionElement.style.top = `${
+                            window.scrollY + newCursorRect.top
+                        }px`;
+
+                        // Update the stored range
+                        contentEditableOriginalRange =
+                            currentRange.cloneRange();
+                    }
+                }
             );
+
+            contentEditableMutationObserver.observe(currentField, {
+                childList: true,
+                characterData: true,
+                subtree: true,
+            });
         }
     }
 }
@@ -1681,41 +1915,121 @@ function acceptSuggestion() {
     }
     // If the field is contentEditable
     else if (currentField.isContentEditable) {
-        // Remove the suggestion element
-        if (suggestionElement) {
-            // Replace the suggestion element with its text content
-            const textNode = document.createTextNode(currentSuggestion);
-            suggestionElement.parentNode.replaceChild(
-                textNode,
-                suggestionElement
+        try {
+            // First ensure the field has focus
+            currentField.focus();
+
+            // Check if we have a stored selection range for ContentEditable
+            if (contentEditableOriginalRange) {
+                // Use the stored range to insert the text
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(contentEditableOriginalRange);
+
+                // Create a text node with the suggestion content
+                const textNode = document.createTextNode(currentSuggestion);
+
+                // Insert the text at the cursor position
+                const range = selection.getRangeAt(0);
+                range.deleteContents();
+                range.insertNode(textNode);
+
+                // Move cursor after the inserted text
+                range.setStartAfter(textNode);
+                range.setEndAfter(textNode);
+                selection.removeAllRanges();
+                selection.addRange(range);
+
+                // Store the new range for debugging
+                const cursorRect = range.getBoundingClientRect();
+
+                debugLog(
+                    "Accepted suggestion in contentEditable (using stored range)",
+                    {
+                        cursorPosition: "after text node",
+                        cursorRect: {
+                            left: cursorRect.left,
+                            top: cursorRect.top,
+                            right: cursorRect.right,
+                            bottom: cursorRect.bottom,
+                        },
+                    }
+                );
+
+                // Ensure the cursor is visible after insertion
+                ensureContentEditableSuggestionVisible(currentField, textNode);
+
+                // Dispatch input event to trigger any listeners
+                const inputEvent = new Event("input", { bubbles: true });
+                currentField.dispatchEvent(inputEvent);
+
+                // Also dispatch a change event for good measure
+                const changeEvent = new Event("change", { bubbles: true });
+                currentField.dispatchEvent(changeEvent);
+            } else {
+                // Fallback to the current selection if we don't have a stored range
+                const selection = window.getSelection();
+                if (selection.rangeCount > 0) {
+                    const range = selection.getRangeAt(0);
+
+                    // Ensure we're at the cursor position
+                    range.collapse(false); // Collapse to the end point (cursor position)
+
+                    const textNode = document.createTextNode(currentSuggestion);
+                    range.insertNode(textNode);
+
+                    // Move cursor after the inserted text
+                    range.setStartAfter(textNode);
+                    range.setEndAfter(textNode);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+
+                    // Ensure the cursor is visible after insertion
+                    ensureContentEditableSuggestionVisible(
+                        currentField,
+                        textNode
+                    );
+
+                    // Dispatch input event to trigger any listeners
+                    const inputEvent = new Event("input", { bubbles: true });
+                    currentField.dispatchEvent(inputEvent);
+
+                    debugLog(
+                        "Accepted suggestion in contentEditable (fallback to current selection)",
+                        {
+                            cursorPosition: "after text node",
+                        }
+                    );
+                }
+            }
+
+            // Clean up
+            if (suggestionElement) {
+                // Remove the suggestion element from the DOM
+                if (suggestionElement.parentNode) {
+                    suggestionElement.parentNode.removeChild(suggestionElement);
+                }
+                suggestionElement = null;
+            }
+
+            // Clean up the mutation observer
+            if (contentEditableMutationObserver) {
+                contentEditableMutationObserver.disconnect();
+                contentEditableMutationObserver = null;
+            }
+
+            // Clear the stored range
+            contentEditableOriginalRange = null;
+        } catch (error) {
+            // Log any errors that occur during suggestion acceptance
+            console.error(
+                "FlowWrite: Error accepting suggestion in contentEditable",
+                error
             );
-
-            // Position cursor after the inserted text
-            const selection = window.getSelection();
-            const range = document.createRange();
-            range.setStartAfter(textNode);
-            range.setEndAfter(textNode);
-            selection.removeAllRanges();
-            selection.addRange(range);
-
-            // Store the range for debugging
-            const cursorRect = range.getBoundingClientRect();
-
-            debugLog("Accepted suggestion in contentEditable", {
-                cursorPosition: "after text node",
-                cursorRect: {
-                    left: cursorRect.left,
-                    top: cursorRect.top,
-                    right: cursorRect.right,
-                    bottom: cursorRect.bottom,
-                },
+            debugLog("Error accepting suggestion in contentEditable", {
+                error: error.message,
+                stack: error.stack,
             });
-
-            suggestionElement = null;
-
-            // Dispatch input event to trigger any listeners
-            const inputEvent = new Event("input", { bubbles: true });
-            currentField.dispatchEvent(inputEvent);
         }
     }
     // Special handling for WhatsApp
@@ -1902,10 +2216,17 @@ function removeSuggestion() {
     inlineSuggestionElement = null;
     currentSuggestion = null;
 
+    // Clean up ContentEditable-specific resources
+    if (contentEditableMutationObserver) {
+        contentEditableMutationObserver.disconnect();
+        contentEditableMutationObserver = null;
+    }
+    contentEditableOriginalRange = null;
+
     // Find and remove any other suggestion elements that might be lingering
     // This ensures we don't have multiple ghost texts appearing
     const allSuggestions = document.querySelectorAll(
-        ".flowwrite-suggestion, .flowwrite-suggestion-popup, .flowwrite-suggestion-sidepanel"
+        ".flowwrite-suggestion, .flowwrite-suggestion-popup, .flowwrite-suggestion-sidepanel, .flowwrite-contenteditable-suggestion"
     );
     allSuggestions.forEach((element) => {
         if (element.parentNode) {
@@ -2381,6 +2702,81 @@ function ensureCursorAndSuggestionVisible(
                 });
             }
         }, 50); // Small delay to allow smooth scrolling to take effect
+    }
+}
+
+/**
+ * Ensure an element is visible in the viewport by scrolling if necessary
+ * @param {HTMLElement} element - The element to ensure is visible
+ */
+function ensureElementVisibleInViewport(element) {
+    if (!element) return;
+
+    // Get the element's rectangle
+    const rect = element.getBoundingClientRect();
+
+    // Calculate the visible area of the viewport
+    const viewportWidth =
+        window.innerWidth || document.documentElement.clientWidth;
+    const viewportHeight =
+        window.innerHeight || document.documentElement.clientHeight;
+
+    // Add a buffer margin to ensure the element is not too close to the edge
+    const bufferMargin = 20;
+
+    // Check if the element is fully visible in the viewport
+    const isVisible =
+        rect.top >= bufferMargin &&
+        rect.bottom <= viewportHeight - bufferMargin &&
+        rect.left >= bufferMargin &&
+        rect.right <= viewportWidth - bufferMargin;
+
+    if (!isVisible) {
+        // If the element is not fully visible, scroll to make it visible
+
+        // Calculate the scroll position
+        let scrollX = window.scrollX;
+        let scrollY = window.scrollY;
+
+        // Adjust horizontal scroll if needed
+        if (rect.left < bufferMargin) {
+            // Element extends beyond the left edge
+            scrollX += rect.left - bufferMargin;
+        } else if (rect.right > viewportWidth - bufferMargin) {
+            // Element extends beyond the right edge
+            scrollX += rect.right - (viewportWidth - bufferMargin);
+        }
+
+        // Adjust vertical scroll if needed
+        if (rect.top < bufferMargin) {
+            // Element extends beyond the top edge
+            scrollY += rect.top - bufferMargin;
+        } else if (rect.bottom > viewportHeight - bufferMargin) {
+            // Element extends beyond the bottom edge
+            scrollY += rect.bottom - (viewportHeight - bufferMargin);
+        }
+
+        // Scroll smoothly to the new position
+        window.scrollTo({
+            left: scrollX,
+            top: scrollY,
+            behavior: "smooth",
+        });
+
+        debugLog("Scrolled viewport to ensure element is visible", {
+            element: element.tagName,
+            className: element.className,
+            rect: {
+                top: rect.top,
+                right: rect.right,
+                bottom: rect.bottom,
+                left: rect.left,
+            },
+            newScroll: {
+                x: scrollX,
+                y: scrollY,
+            },
+        });
     }
 }
 
