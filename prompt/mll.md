@@ -68,4 +68,4 @@ After the user accepts a ghost text suggestion (via Tab key or by clicking on it
 4. Maintain proper text flow and prevent any visual jumping or flickering
 5. Handle all input types consistently across different websites
 6. Ensure the cursor remains visible even when accepting long suggestions that would otherwise push the cursor out of view
-7. Prioritize showing the current line where the cursor is positioned before wrapping to subsequent lines
+7. Prioritize showing the current line where the cursor is positioned before wrapping to subsequent lines 
