@@ -9,3 +9,7 @@ Implement a new keyboard shortcut feature in the FlowWrite browser extension tha
 5. Make sure this doesn't conflict with existing website keyboard shortcuts
 6. Implement proper handling for cursor positioning after accepting the partial suggestion
 7. Ensure compatibility with the existing Tab key and click acceptance methods
+7. Ensure compatibility with the existing Tab key and click acceptance methods
+
+
+7don't remove the suggestion even after accepting one word as i may want to accept multiple words but not of the words, uses debugging

@@ -491,6 +491,20 @@ function handleKeydown(event) {
         sendTelemetry(true, "tab");
     }
 
+    // If Ctrl + Right Arrow is pressed, accept only the next word of the suggestion
+    else if (
+        event.key === "ArrowRight" &&
+        event.ctrlKey &&
+        !event.shiftKey &&
+        !event.altKey
+    ) {
+        event.preventDefault();
+        acceptPartialSuggestion();
+
+        // Send telemetry data
+        sendTelemetry(true, "ctrl-right-arrow");
+    }
+
     // If Esc is pressed, dismiss the suggestion
     else if (event.key === "Escape") {
         event.preventDefault();
@@ -500,9 +514,42 @@ function handleKeydown(event) {
         sendTelemetry(false, "escape");
     }
 
+    // If a modifier key is pressed (Ctrl, Shift, Alt, Meta), log it but don't remove the suggestion
+    else if (
+        event.key === "Control" ||
+        event.key === "Ctrl" || // Some browsers/keyboard layouts might report it differently
+        event.key === "Shift" ||
+        event.key === "Alt" ||
+        event.key === "Meta" ||
+        event.key === "Command" || // For Mac users
+        // Also check if any modifier key is being held down
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey ||
+        event.metaKey
+    ) {
+        debugLog("Modifier key pressed, keeping suggestion visible", {
+            key: event.key,
+            ctrlKey: event.ctrlKey,
+            shiftKey: event.shiftKey,
+            altKey: event.altKey,
+            metaKey: event.metaKey,
+        });
+        // Do nothing, keep the suggestion visible
+    }
     // If any other key is pressed, remove the suggestion
-    else if (event.key !== "Tab" && event.key !== "Escape") {
-        debugLog("Key pressed, removing suggestion", { key: event.key });
+    else if (
+        event.key !== "Tab" &&
+        event.key !== "Escape" &&
+        !(event.key === "ArrowRight" && event.ctrlKey)
+    ) {
+        debugLog("Key pressed, removing suggestion", {
+            key: event.key,
+            ctrlKey: event.ctrlKey,
+            shiftKey: event.shiftKey,
+            altKey: event.altKey,
+            metaKey: event.metaKey,
+        });
         removeSuggestion();
 
         // Also abort any in-flight requests
@@ -1140,14 +1187,50 @@ function requestSuggestion(context) {
 /**
  * Show a suggestion
  * @param {string} suggestion - The suggestion to show
+ * @param {boolean} keepCurrentSuggestion - Whether to keep the current suggestion value (for partial acceptance)
  */
-function showSuggestion(suggestion) {
+function showSuggestion(suggestion, keepCurrentSuggestion = false) {
     // If there's no current field, do nothing
     if (!currentField) return;
 
-    // Always ensure any existing suggestion is removed first
+    // Store the current suggestion if we need to keep it
+    const savedSuggestion = keepCurrentSuggestion ? currentSuggestion : null;
+
+    debugLog("Showing suggestion", {
+        suggestion:
+            suggestion.substring(0, 20) + (suggestion.length > 20 ? "..." : ""),
+        keepCurrentSuggestion: keepCurrentSuggestion,
+        savedSuggestion: savedSuggestion
+            ? savedSuggestion.substring(0, 20) +
+              (savedSuggestion.length > 20 ? "..." : "")
+            : null,
+        currentSuggestion: currentSuggestion
+            ? currentSuggestion.substring(0, 20) +
+              (currentSuggestion.length > 20 ? "..." : "")
+            : null,
+    });
+
+    // Always ensure any existing suggestion elements are removed first
     // This is critical to prevent ghost text from previous suggestions from lingering
-    removeSuggestion();
+    if (suggestionElement && suggestionElement.parentNode) {
+        suggestionElement.parentNode.removeChild(suggestionElement);
+        suggestionElement = null;
+    }
+    if (inlineSuggestionElement && inlineSuggestionElement.parentNode) {
+        inlineSuggestionElement.parentNode.removeChild(inlineSuggestionElement);
+        inlineSuggestionElement = null;
+    }
+
+    // Restore the current suggestion if needed
+    if (keepCurrentSuggestion) {
+        currentSuggestion = savedSuggestion;
+        debugLog("Restored current suggestion", {
+            currentSuggestion: currentSuggestion
+                ? currentSuggestion.substring(0, 20) +
+                  (currentSuggestion.length > 20 ? "..." : "")
+                : null,
+        });
+    }
 
     // Ensure the cursor is in the right position before showing the suggestion
     // This is especially important for contentEditable elements
@@ -1869,6 +1952,324 @@ function showSidePanelSuggestion(suggestion) {
 }
 
 /**
+ * Extract the next word from a suggestion
+ * @param {string} suggestion - The suggestion text
+ * @returns {Object} - Object containing the next word and the remaining suggestion
+ */
+function extractNextWord(suggestion) {
+    if (!suggestion) return { nextWord: "", remainingSuggestion: "" };
+
+    // Use a regex to match the next word (including any trailing punctuation)
+    // This regex matches:
+    // 1. A sequence of word characters (\w+) - letters, numbers, underscores
+    // 2. Optionally followed by punctuation ([.,;:!?)]*)
+    // 3. Optionally followed by whitespace (\s*)
+    const wordRegex = /^(\w+[.,;:!?)\s]*)/;
+    const match = suggestion.match(wordRegex);
+
+    if (match && match[1]) {
+        const nextWord = match[1];
+        const remainingSuggestion = suggestion.substring(nextWord.length);
+        return { nextWord, remainingSuggestion };
+    }
+
+    // If no word pattern is found, just return the first character
+    return {
+        nextWord: suggestion.charAt(0),
+        remainingSuggestion: suggestion.substring(1),
+    };
+}
+
+/**
+ * Accept only the next word of the current suggestion without removing the remaining suggestion
+ */
+function acceptPartialSuggestion() {
+    // If there's no current suggestion or field, do nothing
+    if (!currentSuggestion || !currentField) return;
+
+    // Extract the next word from the current suggestion
+    const { nextWord, remainingSuggestion } =
+        extractNextWord(currentSuggestion);
+
+    if (!nextWord) return;
+
+    debugLog("Accepting partial suggestion", {
+        nextWord: nextWord,
+        remainingSuggestion:
+            remainingSuggestion.substring(0, 20) +
+            (remainingSuggestion.length > 20 ? "..." : ""),
+        originalSuggestion:
+            currentSuggestion.substring(0, 20) +
+            (currentSuggestion.length > 20 ? "..." : ""),
+    });
+
+    // Store the original suggestion for debugging
+    const originalSuggestion = currentSuggestion;
+
+    // Insert the next word at the cursor position without removing the suggestion
+    if (
+        currentField.tagName === "INPUT" ||
+        currentField.tagName === "TEXTAREA"
+    ) {
+        // For standard input fields and textareas
+        const cursorPosition = getCursorPosition(currentField);
+        const newValue =
+            currentField.value.substring(0, cursorPosition) +
+            nextWord +
+            currentField.value.substring(cursorPosition);
+
+        // Update the field value
+        currentField.value = newValue;
+
+        // Calculate the new cursor position (at the end of the inserted word)
+        const newCursorPosition = cursorPosition + nextWord.length;
+
+        // Move the cursor to the end of the inserted word
+        setCursorPosition(currentField, newCursorPosition);
+
+        // Ensure the cursor is visible
+        ensureCursorAndSuggestionVisible(currentField, newCursorPosition, 0);
+
+        // Dispatch input event to trigger any listeners
+        const inputEvent = new Event("input", { bubbles: true });
+        currentField.dispatchEvent(inputEvent);
+
+        // Send telemetry data
+        sendTelemetry(true, "partial-accept");
+    } else if (currentField.isContentEditable) {
+        // For contentEditable elements
+        try {
+            // Check if we have a stored selection range
+            if (contentEditableOriginalRange) {
+                // Use the stored range to insert the text
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(contentEditableOriginalRange);
+
+                // Create a text node with just the next word
+                const textNode = document.createTextNode(nextWord);
+
+                // Insert the text at the cursor position
+                const range = selection.getRangeAt(0);
+                range.deleteContents();
+                range.insertNode(textNode);
+
+                // Move cursor after the inserted text
+                range.setStartAfter(textNode);
+                range.setEndAfter(textNode);
+                selection.removeAllRanges();
+                selection.addRange(range);
+
+                // Update the stored range for the next word
+                contentEditableOriginalRange = range.cloneRange();
+
+                // Ensure the cursor is visible
+                ensureContentEditableSuggestionVisible(currentField, textNode);
+
+                // Dispatch input event
+                const inputEvent = new Event("input", { bubbles: true });
+                currentField.dispatchEvent(inputEvent);
+
+                // Send telemetry data
+                sendTelemetry(true, "partial-accept");
+            } else {
+                // Fallback to the current selection
+                const selection = window.getSelection();
+                if (selection.rangeCount > 0) {
+                    const range = selection.getRangeAt(0);
+                    range.collapse(false); // Collapse to the end point (cursor position)
+
+                    const textNode = document.createTextNode(nextWord);
+                    range.insertNode(textNode);
+
+                    // Move cursor after the inserted text
+                    range.setStartAfter(textNode);
+                    range.setEndAfter(textNode);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+
+                    // Store the new range for the next word
+                    contentEditableOriginalRange = range.cloneRange();
+
+                    // Ensure the cursor is visible
+                    ensureContentEditableSuggestionVisible(
+                        currentField,
+                        textNode
+                    );
+
+                    // Dispatch input event
+                    const inputEvent = new Event("input", { bubbles: true });
+                    currentField.dispatchEvent(inputEvent);
+
+                    // Send telemetry data
+                    sendTelemetry(true, "partial-accept");
+                }
+            }
+        } catch (error) {
+            console.error(
+                "FlowWrite: Error accepting partial suggestion in contentEditable",
+                error
+            );
+            debugLog("Error accepting partial suggestion in contentEditable", {
+                error: error.message,
+                stack: error.stack,
+            });
+        }
+    }
+    // For elements with role attributes
+    else if (
+        currentField.getAttribute("role") === "textbox" ||
+        currentField.getAttribute("role") === "combobox" ||
+        currentField.getAttribute("role") === "searchbox"
+    ) {
+        // Try to handle as input first
+        if (currentField.value !== undefined) {
+            const cursorPosition = getCursorPosition(currentField);
+            const newValue =
+                currentField.value.substring(0, cursorPosition) +
+                nextWord +
+                currentField.value.substring(cursorPosition);
+
+            // Update the field value
+            currentField.value = newValue;
+
+            // Calculate the new cursor position
+            const newCursorPosition = cursorPosition + nextWord.length;
+
+            // Set the cursor position
+            setCursorPosition(currentField, newCursorPosition);
+
+            // Ensure the cursor is visible
+            ensureCursorAndSuggestionVisible(
+                currentField,
+                newCursorPosition,
+                0
+            );
+
+            // Dispatch input event
+            const inputEvent = new Event("input", { bubbles: true });
+            currentField.dispatchEvent(inputEvent);
+
+            // Send telemetry data
+            sendTelemetry(true, "partial-accept");
+        }
+        // Otherwise try to handle as contentEditable
+        else {
+            const selection = window.getSelection();
+            if (selection.rangeCount > 0) {
+                const range = selection.getRangeAt(0);
+                range.collapse(false); // Collapse to the end point (cursor position)
+
+                const textNode = document.createTextNode(nextWord);
+                range.insertNode(textNode);
+
+                // Move cursor after the inserted text
+                range.setStartAfter(textNode);
+                range.setEndAfter(textNode);
+                selection.removeAllRanges();
+                selection.addRange(range);
+
+                // Store the new range for the next word
+                contentEditableOriginalRange = range.cloneRange();
+
+                // Ensure the cursor is visible
+                ensureContentEditableSuggestionVisible(currentField, textNode);
+
+                // Dispatch input event
+                const inputEvent = new Event("input", { bubbles: true });
+                currentField.dispatchEvent(inputEvent);
+
+                // Send telemetry data
+                sendTelemetry(true, "partial-accept");
+            }
+        }
+    }
+
+    // Update the current suggestion to the remaining text
+    if (remainingSuggestion && remainingSuggestion.trim()) {
+        debugLog("Preparing to show remaining suggestion", {
+            remainingSuggestion:
+                remainingSuggestion.substring(0, 20) +
+                (remainingSuggestion.length > 20 ? "..." : ""),
+            currentSuggestion: currentSuggestion
+                ? currentSuggestion.substring(0, 20) +
+                  (currentSuggestion.length > 20 ? "..." : "")
+                : null,
+        });
+
+        // First, safely remove the existing suggestion elements without clearing currentSuggestion
+        if (suggestionElement && suggestionElement.parentNode) {
+            suggestionElement.parentNode.removeChild(suggestionElement);
+            suggestionElement = null;
+        }
+        if (inlineSuggestionElement && inlineSuggestionElement.parentNode) {
+            inlineSuggestionElement.parentNode.removeChild(
+                inlineSuggestionElement
+            );
+            inlineSuggestionElement = null;
+        }
+
+        // Update the current suggestion to the remaining text
+        currentSuggestion = remainingSuggestion;
+
+        // Show the remaining suggestion
+        // Use a small delay to ensure the DOM has updated
+        setTimeout(() => {
+            // Double-check that we still have a current suggestion and field
+            if (!currentSuggestion || !currentField) {
+                debugLog("Current suggestion or field lost during timeout", {
+                    hasSuggestion: !!currentSuggestion,
+                    hasField: !!currentField,
+                });
+                return;
+            }
+
+            debugLog("Showing remaining suggestion after delay", {
+                remainingSuggestion:
+                    remainingSuggestion.substring(0, 20) +
+                    (remainingSuggestion.length > 20 ? "..." : ""),
+                currentSuggestion: currentSuggestion
+                    ? currentSuggestion.substring(0, 20) +
+                      (currentSuggestion.length > 20 ? "..." : "")
+                    : null,
+            });
+
+            // Choose the presentation mode directly instead of using showSuggestion
+            // This avoids any potential issues with the suggestion being cleared
+            switch (config.presentationMode) {
+                case "inline":
+                    showInlineSuggestion(currentSuggestion);
+                    break;
+                case "popup":
+                    showPopupSuggestion(currentSuggestion);
+                    break;
+                case "sidepanel":
+                    showSidePanelSuggestion(currentSuggestion);
+                    break;
+                case "dual":
+                    showDualSuggestion(currentSuggestion);
+                    break;
+                default:
+                    showInlineSuggestion(currentSuggestion);
+            }
+
+            debugLog("Remaining suggestion displayed", {
+                mode: config.presentationMode,
+                suggestionLength: currentSuggestion.length,
+                fieldType:
+                    currentField.tagName ||
+                    (currentField.isContentEditable
+                        ? "contentEditable"
+                        : "unknown"),
+            });
+        }, 10);
+    } else {
+        // If there's no remaining text, remove the suggestion completely
+        removeSuggestion();
+    }
+}
+
+/**
  * Accept the current suggestion
  */
 function acceptSuggestion() {
@@ -2196,10 +2597,26 @@ function acceptSuggestion() {
 
 /**
  * Remove the current suggestion
+ * @param {boolean} keepCurrentSuggestion - Whether to keep the current suggestion value (for partial acceptance)
  */
-function removeSuggestion() {
+function removeSuggestion(keepCurrentSuggestion = false) {
     // If there's no suggestion element and no inline suggestion element, do nothing
     if (!suggestionElement && !inlineSuggestionElement) return;
+
+    // Store the current suggestion if we need to keep it
+    const savedSuggestion = keepCurrentSuggestion ? currentSuggestion : null;
+
+    debugLog("Removing suggestion", {
+        keepCurrentSuggestion: keepCurrentSuggestion,
+        savedSuggestion: savedSuggestion
+            ? savedSuggestion.substring(0, 20) +
+              (savedSuggestion.length > 20 ? "..." : "")
+            : null,
+        currentSuggestion: currentSuggestion
+            ? currentSuggestion.substring(0, 20) +
+              (currentSuggestion.length > 20 ? "..." : "")
+            : null,
+    });
 
     // Remove the main suggestion element
     if (suggestionElement && suggestionElement.parentNode) {
@@ -2211,10 +2628,22 @@ function removeSuggestion() {
         inlineSuggestionElement.parentNode.removeChild(inlineSuggestionElement);
     }
 
-    // Clear the suggestion elements and current suggestion
+    // Clear the suggestion elements
     suggestionElement = null;
     inlineSuggestionElement = null;
-    currentSuggestion = null;
+
+    // Restore the current suggestion if needed, otherwise clear it
+    if (keepCurrentSuggestion) {
+        currentSuggestion = savedSuggestion;
+        debugLog("Kept current suggestion after removal", {
+            currentSuggestion: currentSuggestion
+                ? currentSuggestion.substring(0, 20) +
+                  (currentSuggestion.length > 20 ? "..." : "")
+                : null,
+        });
+    } else {
+        currentSuggestion = null;
+    }
 
     // Clean up ContentEditable-specific resources
     if (contentEditableMutationObserver) {

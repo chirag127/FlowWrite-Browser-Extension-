@@ -72,8 +72,9 @@ Visit our [FlowWrite Website](https://chirag127.github.io/FlowWrite-Browser-Exte
 
 1. Type in any text field on the web
 2. Pause briefly to see AI-powered suggestions
-3. Accept suggestions in one of two ways:
-    - Press the 'Tab' key to accept the suggestion
+3. Accept suggestions in one of three ways:
+    - Press the 'Tab' key to accept the entire suggestion
+    - Press 'Ctrl + Right Arrow' to accept only the next word of the suggestion (press and hold Ctrl, then press Right Arrow). You can press this repeatedly to accept multiple words one by one.
     - Click directly on the suggestion (works for all suggestion types: inline, popup, and side panel)
 4. Press 'Esc' to dismiss a suggestion, or continue typing to ignore it
 
