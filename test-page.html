@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GhostTyper Test Page</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    h1 {
+      color: #4285f4;
+      margin-bottom: 20px;
+    }
+    
+    .test-section {
+      margin-bottom: 30px;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+    
+    .test-section h2 {
+      margin-top: 0;
+      margin-bottom: 15px;
+    }
+    
+    .input-row {
+      margin-bottom: 15px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+    
+    input[type="text"],
+    textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+    
+    .editable-div {
+      min-height: 100px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin-bottom: 15px;
+    }
+    
+    .instructions {
+      background-color: #f8f9fa;
+      padding: 15px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+    
+    .instructions h3 {
+      margin-top: 0;
+      margin-bottom: 10px;
+    }
+    
+    .instructions ul {
+      margin-bottom: 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>GhostTyper Test Page</h1>
+  
+  <div class="instructions">
+    <h3>How to Test</h3>
+    <ul>
+      <li>Make sure the GhostTyper extension is installed and enabled</li>
+      <li>Type slowly in any of the input fields below</li>
+      <li>Pause typing to see suggestions appear</li>
+      <li>Press Tab to accept a suggestion or continue typing to ignore it</li>
+    </ul>
+  </div>
+  
+  <div class="test-section">
+    <h2>Single-line Input Fields</h2>
+    
+    <div class="input-row">
+      <label for="simple-input">Simple Text Input:</label>
+      <input type="text" id="simple-input" placeholder="Start typing here...">
+    </div>
+    
+    <div class="input-row">
+      <label for="email-input">Email Input:</label>
+      <input type="email" id="email-input" placeholder="Enter your email...">
+    </div>
+    
+    <div class="input-row">
+      <label for="search-input">Search Input:</label>
+      <input type="search" id="search-input" placeholder="Search for something...">
+    </div>
+  </div>
+  
+  <div class="test-section">
+    <h2>Multi-line Input Fields</h2>
+    
+    <div class="input-row">
+      <label for="textarea-input">Textarea:</label>
+      <textarea id="textarea-input" placeholder="Write a longer text here..."></textarea>
+    </div>
+    
+    <div class="input-row">
+      <label for="editable-div">ContentEditable Div:</label>
+      <div id="editable-div" class="editable-div" contenteditable="true" placeholder="You can also type in this div..."></div>
+    </div>
+  </div>
+  
+  <div class="test-section">
+    <h2>Form Example</h2>
+    
+    <form id="test-form">
+      <div class="input-row">
+        <label for="name-input">Name:</label>
+        <input type="text" id="name-input" placeholder="Enter your name...">
+      </div>
+      
+      <div class="input-row">
+        <label for="subject-input">Subject:</label>
+        <input type="text" id="subject-input" placeholder="Enter a subject...">
+      </div>
+      
+      <div class="input-row">
+        <label for="message-input">Message:</label>
+        <textarea id="message-input" placeholder="Type your message here..."></textarea>
+      </div>
+    </form>
+  </div>
+  
+  <script>
+    // Add placeholder behavior to contentEditable div
+    const editableDiv = document.getElementById('editable-div');
+    
+    editableDiv.addEventListener('focus', function() {
+      if (this.textContent.trim() === '') {
+        this.textContent = '';
+      }
+    });
+    
+    editableDiv.addEventListener('blur', function() {
+      if (this.textContent.trim() === '') {
+        this.setAttribute('placeholder', 'You can also type in this div...');
+      }
+    });
+    
+    // Initialize placeholder
+    if (editableDiv.textContent.trim() === '') {
+      editableDiv.setAttribute('placeholder', 'You can also type in this div...');
+    }
+  </script>
+</body>
+</html>
