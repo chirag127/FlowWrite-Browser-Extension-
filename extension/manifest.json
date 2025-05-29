@@ -5,8 +5,7 @@
   "description": "Real-time AI writing suggestions as you type in web forms and text fields",
   "permissions": [
     "storage",
-    "activeTab",
-    "scripting"
+    "activeTab"
   ],
   "host_permissions": [
     "https://*/*",
