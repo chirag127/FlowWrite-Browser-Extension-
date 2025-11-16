@@ -8,21 +8,156 @@
  * 4. Displaying status messages
  */
 
+// Model metadata with capability information
+const MODEL_METADATA = {
+    // Gemini Models
+    'gemini-2.0-flash-exp': {
+        name: 'Gemini 2.0 Flash (Experimental)',
+        badges: ['experimental', 'speed', 'quality'],
+        description: 'Latest experimental model with enhanced speed and quality. Best for real-time suggestions.'
+    },
+    'gemini-2.0-flash-thinking-exp-1219': {
+        name: 'Gemini 2.0 Flash Thinking',
+        badges: ['experimental', 'thinking', 'quality'],
+        description: 'Experimental model with enhanced reasoning capabilities. Ideal for complex writing tasks.'
+    },
+    'gemini-1.5-flash': {
+        name: 'Gemini 1.5 Flash',
+        badges: ['speed', 'quality'],
+        description: 'Fast and balanced model for everyday writing. Stable and reliable.'
+    },
+    'gemini-1.5-flash-8b': {
+        name: 'Gemini 1.5 Flash 8B',
+        badges: ['speed', 'size-small'],
+        description: 'Ultra-fast smaller model. Ideal for quick suggestions with minimal latency.'
+    },
+    'gemini-1.5-pro': {
+        name: 'Gemini 1.5 Pro',
+        badges: ['quality', 'size-large'],
+        description: 'High-quality model for professional writing. Best accuracy and coherence.'
+    },
+    'gemini-1.5-pro-002': {
+        name: 'Gemini 1.5 Pro 002',
+        badges: ['quality', 'size-large'],
+        description: 'Updated Pro model with improved performance and accuracy.'
+    },
+    'gemini-1.0-pro': {
+        name: 'Gemini 1.0 Pro',
+        badges: ['quality'],
+        description: 'Legacy stable model. Reliable for general writing tasks.'
+    },
+    'gemini-exp-1206': {
+        name: 'Gemini Experimental 1206',
+        badges: ['experimental', 'quality'],
+        description: 'Cutting-edge experimental model. May have breaking changes.'
+    },
+    'gemini-exp-1121': {
+        name: 'Gemini Experimental 1121',
+        badges: ['experimental', 'quality'],
+        description: 'Earlier experimental release. Testing new capabilities.'
+    },
+
+    // Cerebras Models
+    'qwen2.5-coder-32b': {
+        name: 'Qwen 2.5 Coder 32B',
+        badges: ['coding', 'speed', 'size-medium'],
+        description: 'Specialized for code and technical writing. Fast inference on Cerebras hardware.'
+    },
+    'qwq-32b-preview': {
+        name: 'QwQ 32B Preview',
+        badges: ['experimental', 'thinking', 'size-medium'],
+        description: 'Preview model with advanced reasoning. Experimental release.'
+    },
+    'llama-3.3-70b': {
+        name: 'Llama 3.3 70B',
+        badges: ['quality', 'size-large', 'speed'],
+        description: 'Latest Llama model with excellent quality. Optimized for Cerebras.'
+    },
+    'llama3.1-8b': {
+        name: 'Llama 3.1 8B',
+        badges: ['speed', 'size-small'],
+        description: 'Fast and efficient smaller model. Great for quick suggestions.'
+    },
+    'llama3.1-70b': {
+        name: 'Llama 3.1 70B',
+        badges: ['quality', 'size-large'],
+        description: 'High-quality large model. Excellent for complex writing.'
+    },
+    'deepseek-r1-distill-llama-70b': {
+        name: 'DeepSeek R1 Distill Llama 70B',
+        badges: ['thinking', 'quality', 'size-large'],
+        description: 'Advanced reasoning model. Excels at complex and nuanced writing.'
+    },
+
+    // Groq Models
+    'llama-3.3-70b-versatile': {
+        name: 'Llama 3.3 70B Versatile',
+        badges: ['quality', 'speed', 'size-large'],
+        description: 'Latest versatile model with exceptional speed on Groq. Best all-around choice.'
+    },
+    'llama-3.3-70b-specdec': {
+        name: 'Llama 3.3 70B SpecDec',
+        badges: ['speed', 'quality', 'size-large'],
+        description: 'Speculative decoding for ultra-fast inference. Fastest large model.'
+    },
+    'llama-3.1-70b-versatile': {
+        name: 'Llama 3.1 70B Versatile',
+        badges: ['quality', 'size-large'],
+        description: 'Versatile model for various writing tasks. Stable and reliable.'
+    },
+    'llama-3.1-8b-instant': {
+        name: 'Llama 3.1 8B Instant',
+        badges: ['speed', 'size-small'],
+        description: 'Instant responses with minimal latency. Perfect for real-time suggestions.'
+    },
+    'mixtral-8x7b-32768': {
+        name: 'Mixtral 8x7B',
+        badges: ['quality', 'size-medium'],
+        description: 'Mixture of Experts model. Good balance of speed and quality.'
+    },
+    'gemma2-9b-it': {
+        name: 'Gemma 2 9B',
+        badges: ['speed', 'size-small'],
+        description: 'Efficient instruction-tuned model. Fast and lightweight.'
+    },
+    'gemma-7b-it': {
+        name: 'Gemma 7B',
+        badges: ['speed', 'size-small'],
+        description: 'Lightweight instruction-tuned model. Very fast responses.'
+    }
+};
+
+const BADGE_LABELS = {
+    'speed': '⚡ Fast',
+    'quality': '🎯 High Quality',
+    'size-small': '💎 Compact',
+    'size-medium': '📦 Medium',
+    'size-large': '🏰 Large',
+    'experimental': '🔬 Experimental',
+    'coding': '💻 Code',
+    'thinking': '🧠 Reasoning'
+};
+
 // DOM Elements - Provider Configuration
 const geminiEnabledToggle = document.getElementById("geminiEnabled");
 const geminiApiKeyInput = document.getElementById("geminiApiKey");
 const geminiModelSelect = document.getElementById("geminiModel");
 const geminiStatus = document.getElementById("geminiStatus");
+const geminiModelInfo = document.getElementById("geminiModelInfo");
 
 const cerebrasEnabledToggle = document.getElementById("cerebrasEnabled");
 const cerebrasApiKeyInput = document.getElementById("cerebrasApiKey");
 const cerebrasModelSelect = document.getElementById("cerebrasModel");
 const cerebrasStatus = document.getElementById("cerebrasStatus");
+const cerebrasModelInfo = document.getElementById("cerebrasModelInfo");
 
 const groqEnabledToggle = document.getElementById("groqEnabled");
 const groqApiKeyInput = document.getElementById("groqApiKey");
 const groqModelSelect = document.getElementById("groqModel");
 const groqStatus = document.getElementById("groqStatus");
+const groqModelInfo = document.getElementById("groqModelInfo");
+
+const fallbackOrderContainer = document.getElementById("fallbackOrder");
 
 // DOM Elements - General Settings
 const isEnabledToggle = document.getElementById("isEnabled");
@@ -38,10 +173,7 @@ const toast = document.getElementById("toast");
 
 // Default configuration
 const DEFAULT_CONFIG = {
-    // Legacy API key (for backward compatibility)
     apiKey: "",
-    
-    // Provider configurations
     providers: {
         gemini: {
             enabled: false,
@@ -59,8 +191,6 @@ const DEFAULT_CONFIG = {
             model: "llama-3.3-70b-versatile"
         }
     },
-    
-    // General settings
     isEnabled: true,
     disabledSites: [],
     suggestionDelay: 500,
@@ -75,6 +205,9 @@ const DEFAULT_CONFIG = {
 function init() {
     loadOptions();
     setupEventListeners();
+    updateModelInfo('gemini', geminiModelSelect.value);
+    updateModelInfo('cerebras', cerebrasModelSelect.value);
+    updateModelInfo('groq', groqModelSelect.value);
 }
 
 /**
@@ -106,10 +239,122 @@ function setupEventListeners() {
         });
     });
 
+    // Model selection listeners
+    geminiModelSelect.addEventListener("change", (e) => {
+        updateModelInfo('gemini', e.target.value);
+    });
+    cerebrasModelSelect.addEventListener("change", (e) => {
+        updateModelInfo('cerebras', e.target.value);
+    });
+    groqModelSelect.addEventListener("change", (e) => {
+        updateModelInfo('groq', e.target.value);
+    });
+
+    // Provider toggle listeners
+    geminiEnabledToggle.addEventListener("change", updateFallbackOrder);
+    cerebrasEnabledToggle.addEventListener("change", updateFallbackOrder);
+    groqEnabledToggle.addEventListener("change", updateFallbackOrder);
+
     // General settings listeners
     suggestionDelaySlider.addEventListener("input", updateSuggestionDelayValue);
     saveOptionsButton.addEventListener("click", saveOptions);
     clearOptionsButton.addEventListener("click", clearOptions);
+}
+
+/**
+ * Update model information display
+ */
+function updateModelInfo(provider, modelId) {
+    let infoElement;
+    
+    switch (provider) {
+        case 'gemini':
+            infoElement = geminiModelInfo;
+            break;
+        case 'cerebras':
+            infoElement = cerebrasModelInfo;
+            break;
+        case 'groq':
+            infoElement = groqModelInfo;
+            break;
+        default:
+            return;
+    }
+
+    const metadata = MODEL_METADATA[modelId];
+    if (!metadata) {
+        infoElement.style.display = 'none';
+        return;
+    }
+
+    infoElement.style.display = 'block';
+
+    const badgesContainer = infoElement.querySelector('.capability-badges');
+    const descriptionContainer = infoElement.querySelector('.model-description');
+
+    badgesContainer.innerHTML = metadata.badges
+        .map(badge => {
+            const label = BADGE_LABELS[badge] || badge;
+            const badgeClass = badge.startsWith('size-') ? 'badge-size' : `badge-${badge}`;
+            return `<span class="badge ${badgeClass}">${label}</span>`;
+        })
+        .join('');
+
+    descriptionContainer.textContent = metadata.description;
+}
+
+/**
+ * Update fallback order visualization
+ */
+function updateFallbackOrder() {
+    const enabledProviders = [];
+
+    if (geminiEnabledToggle.checked && geminiApiKeyInput.value.trim()) {
+        enabledProviders.push({
+            name: 'Google Gemini',
+            model: MODEL_METADATA[geminiModelSelect.value]?.name || geminiModelSelect.value,
+            provider: 'gemini'
+        });
+    }
+
+    if (cerebrasEnabledToggle.checked && cerebrasApiKeyInput.value.trim()) {
+        enabledProviders.push({
+            name: 'Cerebras',
+            model: MODEL_METADATA[cerebrasModelSelect.value]?.name || cerebrasModelSelect.value,
+            provider: 'cerebras'
+        });
+    }
+
+    if (groqEnabledToggle.checked && groqApiKeyInput.value.trim()) {
+        enabledProviders.push({
+            name: 'Groq',
+            model: MODEL_METADATA[groqModelSelect.value]?.name || groqModelSelect.value,
+            provider: 'groq'
+        });
+    }
+
+    if (enabledProviders.length === 0) {
+        fallbackOrderContainer.innerHTML = '<div class="fallback-empty">No providers enabled. Enable at least one provider above.</div>';
+        return;
+    }
+
+    fallbackOrderContainer.innerHTML = enabledProviders
+        .map((provider, index) => {
+            const isPrimary = index === 0;
+            return `
+                <div class="fallback-item ${isPrimary ? 'primary' : ''}">
+                    <div class="fallback-number">${index + 1}</div>
+                    <div class="fallback-provider">
+                        <div class="fallback-provider-name">${provider.name}</div>
+                        <div class="fallback-provider-model">${provider.model}</div>
+                    </div>
+                    <div class="fallback-status ${isPrimary ? 'primary' : 'fallback'}">
+                        ${isPrimary ? '● Primary' : '○ Fallback'}
+                    </div>
+                </div>
+            `;
+        })
+        .join('');
 }
 
 /**
@@ -128,16 +373,13 @@ function loadOptions() {
             "debugMode",
         ],
         (result) => {
-            // Handle legacy API key migration
             const providers = result.providers || DEFAULT_CONFIG.providers;
             
-            // If there's a legacy apiKey and no providers configured, migrate it
             if (result.apiKey && !providers.gemini.apiKey) {
                 providers.gemini.apiKey = result.apiKey;
                 providers.gemini.enabled = true;
             }
 
-            // Load provider configurations
             geminiEnabledToggle.checked = providers.gemini?.enabled || false;
             geminiApiKeyInput.value = providers.gemini?.apiKey || "";
             geminiModelSelect.value = providers.gemini?.model || "gemini-1.5-flash";
@@ -150,7 +392,6 @@ function loadOptions() {
             groqApiKeyInput.value = providers.groq?.apiKey || "";
             groqModelSelect.value = providers.groq?.model || "llama-3.3-70b-versatile";
 
-            // Load general settings
             isEnabledToggle.checked =
                 result.isEnabled !== undefined
                     ? result.isEnabled
@@ -174,6 +415,8 @@ function loadOptions() {
                 result.debugMode !== undefined
                     ? result.debugMode
                     : DEFAULT_CONFIG.debugMode;
+
+            updateFallbackOrder();
         }
     );
 }
@@ -182,7 +425,6 @@ function loadOptions() {
  * Save options to storage
  */
 function saveOptions() {
-    // Get provider configurations
     const providers = {
         gemini: {
             enabled: geminiEnabledToggle.checked,
@@ -201,7 +443,6 @@ function saveOptions() {
         }
     };
 
-    // Get general settings
     const isEnabled = isEnabledToggle.checked;
     const suggestionDelay = parseInt(suggestionDelaySlider.value);
     const presentationMode = presentationModeSelect.value;
@@ -217,7 +458,6 @@ function saveOptions() {
     const enablePageContext = enablePageContextToggle.checked;
     const debugMode = debugModeToggle.checked;
 
-    // For backward compatibility, set apiKey to the first enabled provider's key
     let apiKey = "";
     if (providers.gemini.enabled && providers.gemini.apiKey) {
         apiKey = providers.gemini.apiKey;
@@ -227,7 +467,6 @@ function saveOptions() {
         apiKey = providers.groq.apiKey;
     }
 
-    // Create config object
     const config = {
         apiKey,
         providers,
@@ -239,9 +478,9 @@ function saveOptions() {
         debugMode,
     };
 
-    // Save to storage
     chrome.storage.local.set(config, () => {
         showToast("Options saved successfully");
+        updateFallbackOrder();
     });
 }
 
@@ -270,24 +509,25 @@ function updateSuggestionDelayValue() {
 
 /**
  * Validate API key for a specific provider
- * @param {string} provider - The provider name (gemini, cerebras, groq)
  */
-function validateApiKey(provider) {
-    let apiKeyInput, statusElement, apiKey;
+async function validateApiKey(provider) {
+    let apiKeyInput, statusElement, modelSelect, apiKey;
 
-    // Get the appropriate elements based on provider
     switch (provider) {
         case "gemini":
             apiKeyInput = geminiApiKeyInput;
             statusElement = geminiStatus;
+            modelSelect = geminiModelSelect;
             break;
         case "cerebras":
             apiKeyInput = cerebrasApiKeyInput;
             statusElement = cerebrasStatus;
+            modelSelect = cerebrasModelSelect;
             break;
         case "groq":
             apiKeyInput = groqApiKeyInput;
             statusElement = groqStatus;
+            modelSelect = groqModelSelect;
             break;
         default:
             return;
@@ -295,44 +535,123 @@ function validateApiKey(provider) {
 
     apiKey = apiKeyInput.value.trim();
 
-    // Clear previous status
     statusElement.textContent = "";
     statusElement.className = "status-message";
 
-    // If API key is empty, show warning
     if (!apiKey) {
         statusElement.textContent = "Please enter an API key";
         statusElement.classList.add("status-warning");
         return;
     }
 
-    // Show loading status
-    statusElement.textContent = "Validating API key...";
+    statusElement.textContent = "🔄 Testing API connection...";
 
-    // Send message to background script to check API key
-    chrome.runtime.sendMessage(
-        { type: "CHECK_API_KEY", provider, apiKey },
-        (response) => {
-            if (chrome.runtime.lastError) {
-                statusElement.textContent = "Error: Could not validate API key";
-                statusElement.classList.add("status-error");
-                return;
-            }
+    const model = modelSelect.value;
 
-            if (response && response.valid) {
-                statusElement.textContent = "✓ API key is valid";
-                statusElement.classList.add("status-success");
-            } else {
-                statusElement.textContent = response?.error || "✗ Invalid API key";
-                statusElement.classList.add("status-error");
-            }
+    try {
+        const result = await testProviderAPI(provider, apiKey, model);
+        
+        if (result.success) {
+            statusElement.textContent = `✓ API key is valid • Response time: ${result.responseTime}ms`;
+            statusElement.classList.add("status-success");
+        } else {
+            statusElement.textContent = `✗ ${result.error}`;
+            statusElement.classList.add("status-error");
         }
-    );
+    } catch (error) {
+        statusElement.textContent = `✗ Validation failed: ${error.message}`;
+        statusElement.classList.add("status-error");
+    }
+}
+
+/**
+ * Test provider API with a simple request
+ */
+async function testProviderAPI(provider, apiKey, model) {
+    const startTime = Date.now();
+
+    try {
+        let endpoint, requestBody, headers;
+
+        switch (provider) {
+            case 'gemini':
+                endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+                headers = { 'Content-Type': 'application/json' };
+                requestBody = {
+                    contents: [{
+                        parts: [{ text: 'Hello' }]
+                    }],
+                    generationConfig: {
+                        temperature: 0.7,
+                        maxOutputTokens: 10
+                    }
+                };
+                break;
+
+            case 'cerebras':
+                endpoint = 'https://api.cerebras.ai/v1/chat/completions';
+                headers = {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                };
+                requestBody = {
+                    model: model,
+                    messages: [{ role: 'user', content: 'Hello' }],
+                    max_tokens: 10,
+                    temperature: 0.7
+                };
+                break;
+
+            case 'groq':
+                endpoint = 'https://api.groq.com/openai/v1/chat/completions';
+                headers = {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                };
+                requestBody = {
+                    model: model,
+                    messages: [{ role: 'user', content: 'Hello' }],
+                    max_tokens: 10,
+                    temperature: 0.7
+                };
+                break;
+
+            default:
+                throw new Error('Unknown provider');
+        }
+
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(requestBody)
+        });
+
+        const responseTime = Date.now() - startTime;
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            return {
+                success: false,
+                error: errorData.error?.message || `HTTP ${response.status}: ${response.statusText}`,
+                responseTime
+            };
+        }
+
+        return {
+            success: true,
+            responseTime
+        };
+    } catch (error) {
+        return {
+            success: false,
+            error: error.message,
+            responseTime: Date.now() - startTime
+        };
+    }
 }
 
 /**
  * Show a toast notification
- * @param {string} message - The message to show
  */
 function showToast(message) {
     toast.textContent = message;
@@ -343,5 +662,4 @@ function showToast(message) {
     }, 3000);
 }
 
-// Initialize the options page
 document.addEventListener("DOMContentLoaded", init);

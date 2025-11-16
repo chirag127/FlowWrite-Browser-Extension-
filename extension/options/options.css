@@ -432,6 +432,232 @@ textarea:focus {
     outline-offset: 2px;
 }
 
+/* Model Info Section */
+.model-info {
+    margin-top: 12px;
+    padding: 12px;
+    background-color: rgba(66, 133, 244, 0.05);
+    border-radius: 6px;
+    border-left: 3px solid var(--primary-color);
+}
+
+.capability-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1;
+}
+
+.badge-speed {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+}
+
+.badge-size {
+    background-color: #e3f2fd;
+    color: #1565c0;
+}
+
+.badge-quality {
+    background-color: #f3e5f5;
+    color: #6a1b9a;
+}
+
+.badge-experimental {
+    background-color: #fff3e0;
+    color: #e65100;
+}
+
+.badge-coding {
+    background-color: #e0f2f1;
+    color: #00695c;
+}
+
+.badge-thinking {
+    background-color: #fce4ec;
+    color: #c2185b;
+}
+
+.model-description {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+/* Fallback Order Section */
+.fallback-section {
+    margin-top: 24px;
+    padding: 20px;
+    background-color: var(--card-background);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.fallback-section h3 {
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: var(--text-color);
+}
+
+.fallback-order {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.fallback-item {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    background-color: var(--background-color);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.fallback-item:hover {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.fallback-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background-color: var(--primary-color);
+    color: white;
+    font-size: 13px;
+    font-weight: 600;
+    margin-right: 12px;
+    flex-shrink: 0;
+}
+
+.fallback-item.primary .fallback-number {
+    background-color: var(--success-color);
+}
+
+.fallback-provider {
+    flex: 1;
+}
+
+.fallback-provider-name {
+    font-weight: 500;
+    font-size: 14px;
+    color: var(--text-color);
+    margin-bottom: 2px;
+}
+
+.fallback-provider-model {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.fallback-status {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.fallback-status.primary {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+}
+
+.fallback-status.fallback {
+    background-color: #fff3e0;
+    color: #e65100;
+}
+
+.fallback-empty {
+    padding: 16px;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-style: italic;
+}
+
+/* Validation UI */
+.validation-progress {
+    display: none;
+    margin-top: 12px;
+    padding: 12px;
+    background-color: rgba(66, 133, 244, 0.05);
+    border-radius: 6px;
+    border-left: 3px solid var(--primary-color);
+}
+
+.validation-progress.show {
+    display: block;
+}
+
+.validation-step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+    font-size: 13px;
+}
+
+.validation-step-icon {
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.validation-step.pending .validation-step-icon {
+    color: var(--text-secondary);
+}
+
+.validation-step.running .validation-step-icon::after {
+    content: "⏳";
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+.validation-step.success .validation-step-icon::after {
+    content: "✓";
+    color: var(--success-color);
+}
+
+.validation-step.error .validation-step-icon::after {
+    content: "✗";
+    color: var(--error-color);
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+.validation-details {
+    margin-top: 8px;
+    padding: 8px;
+    background-color: rgba(0, 0, 0, 0.02);
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: 'Courier New', monospace;
+    color: var(--text-secondary);
+}
+
 /* Responsive Styles */
 @media (max-width: 768px) {
     .option-row {
@@ -458,5 +684,14 @@ textarea:focus {
 
     .status-message {
         margin-left: 0;
+    }
+
+    .fallback-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .fallback-number {
+        margin-bottom: 8px;
     }
 }
