@@ -1,22 +1,29 @@
 /**
- * Simple validation test for AI Provider Manager
+ * Simple validation test for AI Provider Service
  * Run with: node backend/test-providers.js
  */
 
 require('dotenv').config();
 
-console.log('Testing AI Provider Manager...');
+console.log('Testing AI Provider Service...');
 
 try {
-    const aiProviders = require('./services/aiProviders');
-    console.log('✓ AI Provider Manager loaded successfully');
+    const aiProviderService = require('./services/ai-provider-service');
+    console.log('✓ AI Provider Service loaded successfully');
     
-    const providers = aiProviders.getAvailableProviders();
-    console.log(`✓ Found ${providers.length} available provider(s)`);
+    const models = aiProviderService.getAvailableModels();
+    console.log(`✓ Found ${models.length} available model(s)`);
     
-    const health = aiProviders.getHealthStatus();
-    console.log('✓ Health status retrieved successfully');
-    console.log('\nHealth Status:', JSON.stringify(health, null, 2));
+    const registry = aiProviderService.getModelRegistry();
+    console.log('✓ Model registry retrieved successfully');
+    console.log('\nModel Registry:');
+    registry.forEach(model => {
+        console.log(`  [Rank ${model.rank}] ${model.displayName} (${model.provider}) - ${model.category}`);
+    });
+    
+    const health = aiProviderService.getHealthStatus();
+    console.log('\n✓ Health status retrieved successfully');
+    console.log(`\nHealth Summary: ${health.healthyModels}/${health.availableModels} models healthy`);
     
     console.log('\n✓ All validation tests passed!');
 } catch (error) {
