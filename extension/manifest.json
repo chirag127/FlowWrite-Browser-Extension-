@@ -2,13 +2,15 @@
   "manifest_version": 3,
   "name": "FlowWrite - AI Writing Assistant",
   "version": "2.0.0",
-  "description": "Real-time AI writing suggestions powered by Google Gemini, directly in your browser",
+  "description": "Real-time AI writing suggestions powered by AI, directly in your browser",
   "permissions": [
     "storage",
     "activeTab"
   ],
   "host_permissions": [
-    "https://generativelanguage.googleapis.com/*"
+    "https://generativelanguage.googleapis.com/*",
+    "https://api.cerebras.ai/*",
+    "https://api.groq.com/*"
   ],
   "background": {
     "service_worker": "background.js"
