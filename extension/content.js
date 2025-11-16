@@ -51,9 +51,10 @@ function injectCSS() {
 /**
  * Initialize the content script
  */
-function init() {
+async function init() {
     // Initialize AI provider manager
     aiProviderManager = new AIProviderManager();
+    await aiProviderManager.loadConfiguration();
 
     // Inject CSS
     injectCSS();
@@ -101,6 +102,9 @@ function init() {
     chrome.storage.onChanged.addListener((changes, namespace) => {
         if (namespace === "local") {
             if (changes.apiKey) config.apiKey = changes.apiKey.newValue;
+            if (changes.providers) {
+                aiProviderManager.loadConfiguration();
+            }
             if (changes.isEnabled !== undefined) {
                 config.isEnabled = changes.isEnabled.newValue;
                 if (config.isEnabled) {
@@ -1044,6 +1048,7 @@ async function requestSuggestion(context) {
     if (!config.apiKey) {
         console.error("FlowWrite: API key not set");
         debugLog("API key not set, cannot request suggestion");
+        showPersistentErrorIndicator("API key not configured");
         return;
     }
 
@@ -1074,67 +1079,108 @@ async function requestSuggestion(context) {
         });
     }
 
-    try {
-        const result = await aiProviderManager.generateSuggestion(
-            context,
-            config.apiKey,
-            pageContext,
-            suggestionAbortController.signal
-        );
+    const maxRetries = 3;
+    let lastError = null;
+    let attemptCount = 0;
 
+    for (let retryAttempt = 0; retryAttempt < maxRetries; retryAttempt++) {
         if (requestId !== currentRequestId) {
-            debugLog("Ignoring outdated suggestion response", {
-                requestId: requestId,
-                currentRequestId: currentRequestId,
-            });
+            debugLog("Request invalidated during retry", { requestId, currentRequestId });
             return;
         }
 
-        hideLoadingIndicator();
+        attemptCount++;
 
-        if (result.suggestion) {
-            currentSuggestion = result.suggestion;
-            debugLog("Received suggestion from AI provider", {
-                suggestion:
-                    result.suggestion.substring(0, 50) +
-                    (result.suggestion.length > 50 ? "..." : ""),
-                model: result.model,
-                provider: result.provider,
-                requestId: requestId,
+        try {
+            debugLog(`Suggestion request attempt ${attemptCount}/${maxRetries}`, {
+                requestId,
+                model: aiProviderManager.getCurrentModel(),
+                provider: aiProviderManager.currentProvider,
             });
-            showSuggestion(currentSuggestion);
-        } else {
-            debugLog("No suggestion received from AI provider", {
-                model: result.model,
-                provider: result.provider,
+
+            const result = await aiProviderManager.generateSuggestion(
+                context,
+                config.apiKey,
+                pageContext,
+                suggestionAbortController.signal
+            );
+
+            if (requestId !== currentRequestId) {
+                debugLog("Ignoring outdated suggestion response", {
+                    requestId: requestId,
+                    currentRequestId: currentRequestId,
+                });
+                return;
+            }
+
+            hideLoadingIndicator();
+
+            if (result.suggestion) {
+                currentSuggestion = result.suggestion;
+                debugLog("Received suggestion from AI provider", {
+                    suggestion:
+                        result.suggestion.substring(0, 50) +
+                        (result.suggestion.length > 50 ? "..." : ""),
+                    model: result.model,
+                    provider: result.provider,
+                    requestId: requestId,
+                    attempts: attemptCount,
+                });
+                showSuggestion(currentSuggestion);
+                return;
+            } else {
+                debugLog("No suggestion received from AI provider", {
+                    model: result.model,
+                    provider: result.provider,
+                    requestId: requestId,
+                });
+                return;
+            }
+        } catch (error) {
+            lastError = error;
+
+            if (error.message?.includes('timeout') || error.message?.includes('cancelled') || error.name === 'AbortError') {
+                debugLog("Request was cancelled or timed out", { requestId: requestId, attempt: attemptCount });
+                hideLoadingIndicator();
+                return;
+            }
+
+            if (requestId !== currentRequestId) {
+                return;
+            }
+
+            console.error(`FlowWrite: Error on attempt ${attemptCount}/${maxRetries}:`, error);
+            debugLog("Error requesting suggestion", {
+                error: error.message,
                 requestId: requestId,
+                attempt: attemptCount,
+                maxRetries: maxRetries,
             });
-        }
-    } catch (error) {
-        if (error.message?.includes('timeout') || error.message?.includes('cancelled')) {
-            debugLog("Request was cancelled or timed out", { requestId: requestId });
-            return;
-        }
 
-        if (requestId !== currentRequestId) {
-            return;
-        }
-
-        console.error("FlowWrite: Error requesting suggestion:", error);
-        debugLog("Error requesting suggestion", {
-            error: error.message,
-            requestId: requestId,
-        });
-
-        hideLoadingIndicator();
-        showErrorIndicator();
-    } finally {
-        if (requestId === currentRequestId) {
-            isWaitingForSuggestion = false;
-            if (suggestionAbortController && suggestionAbortController.signal.aborted) {
-                suggestionAbortController = null;
+            if (retryAttempt < maxRetries - 1) {
+                const backoffDelay = Math.min(1000 * Math.pow(2, retryAttempt), 5000);
+                debugLog(`Retrying after ${backoffDelay}ms`, { requestId, nextAttempt: attemptCount + 1 });
+                
+                await new Promise(resolve => setTimeout(resolve, backoffDelay));
+                
+                if (requestId !== currentRequestId) {
+                    debugLog("Request invalidated during backoff", { requestId, currentRequestId });
+                    return;
+                }
             }
         }
+    }
+
+    if (requestId === currentRequestId) {
+        hideLoadingIndicator();
+        const errorMessage = lastError?.message || "Unknown error";
+        showPersistentErrorIndicator(`Failed after ${attemptCount} attempts: ${errorMessage}`);
+        console.error("FlowWrite: All retry attempts exhausted", lastError);
+    }
+
+    isWaitingForSuggestion = false;
+    if (suggestionAbortController && suggestionAbortController.signal.aborted) {
+        suggestionAbortController = null;
     }
 }
 
@@ -2671,7 +2717,7 @@ function hideLoadingIndicator() {
 }
 
 /**
- * Show an error indicator
+ * Show an error indicator (temporary)
  */
 function showErrorIndicator() {
     // If there's no current field, do nothing
@@ -2704,6 +2750,88 @@ function showErrorIndicator() {
             removeSuggestion();
         }
     }, 3000);
+}
+
+/**
+ * Show a persistent error indicator with tooltip
+ * @param {string} errorMessage - The error message to display
+ */
+function showPersistentErrorIndicator(errorMessage) {
+    // If there's no current field, do nothing
+    if (!currentField) return;
+
+    // Create an error indicator container
+    const errorIndicator = document.createElement("div");
+    errorIndicator.className = "flowwrite-error-persistent";
+    errorIndicator.style.position = "absolute";
+    errorIndicator.style.display = "flex";
+    errorIndicator.style.alignItems = "center";
+    errorIndicator.style.gap = "6px";
+    errorIndicator.style.padding = "4px 8px";
+    errorIndicator.style.backgroundColor = "#ff4444";
+    errorIndicator.style.color = "white";
+    errorIndicator.style.borderRadius = "4px";
+    errorIndicator.style.fontSize = "12px";
+    errorIndicator.style.fontFamily = "system-ui, -apple-system, sans-serif";
+    errorIndicator.style.zIndex = "9999";
+    errorIndicator.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.2)";
+    errorIndicator.style.cursor = "pointer";
+    errorIndicator.style.maxWidth = "300px";
+    errorIndicator.style.whiteSpace = "nowrap";
+    errorIndicator.style.overflow = "hidden";
+    errorIndicator.style.textOverflow = "ellipsis";
+
+    // Create error icon
+    const errorIcon = document.createElement("span");
+    errorIcon.textContent = "⚠";
+    errorIcon.style.fontSize = "14px";
+    errorIcon.style.flexShrink = "0";
+
+    // Create error text
+    const errorText = document.createElement("span");
+    errorText.textContent = errorMessage;
+    errorText.style.overflow = "hidden";
+    errorText.style.textOverflow = "ellipsis";
+
+    // Create close button
+    const closeButton = document.createElement("span");
+    closeButton.textContent = "✕";
+    closeButton.style.marginLeft = "auto";
+    closeButton.style.cursor = "pointer";
+    closeButton.style.fontSize = "14px";
+    closeButton.style.flexShrink = "0";
+    closeButton.onclick = (e) => {
+        e.stopPropagation();
+        removeSuggestion();
+    };
+
+    errorIndicator.appendChild(errorIcon);
+    errorIndicator.appendChild(errorText);
+    errorIndicator.appendChild(closeButton);
+
+    // Position the error indicator
+    const fieldRect = currentField.getBoundingClientRect();
+    errorIndicator.style.left = `${fieldRect.right - 24}px`;
+    errorIndicator.style.top = `${fieldRect.top + 4}px`;
+
+    // Add click handler to show full error message
+    errorIndicator.title = errorMessage;
+    errorIndicator.onclick = () => {
+        alert(`FlowWrite Error:\n\n${errorMessage}\n\nPlease check your API key and network connection.`);
+    };
+
+    // Add the error indicator to the page
+    document.body.appendChild(errorIndicator);
+
+    // Store the error indicator
+    suggestionElement = errorIndicator;
+
+    // Remove the error indicator after 10 seconds
+    setTimeout(() => {
+        if (suggestionElement === errorIndicator) {
+            removeSuggestion();
+        }
+    }, 10000);
 }
 
 /**
