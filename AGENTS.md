@@ -2,43 +2,35 @@
 
 ## Commands
 
-### Setup
+**Setup:**
 ```bash
-npm install                    # Install root dependencies
-cd backend && npm install      # Install backend dependencies
+npm install
+cd backend && npm install && cd ..
 ```
 
-### Build
-```bash
-npm run generate-icons         # Generate PNG icons from SVG
-```
+**Build:** `npm run generate-icons` (generates PNG icons from SVG)
 
-### Lint
-No linter configured.
+**Lint:** Not configured
 
-### Test
-```bash
-npm test                       # Root tests (currently not implemented)
-cd backend && npm test         # Backend tests (currently not implemented)
-```
+**Test:** Not configured
 
-### Dev Server
-```bash
-cd backend && npm run dev      # Start backend with nodemon
-```
+**Dev Server:** `cd backend && npm run dev` (runs on port 3000)
 
 ## Tech Stack
-- **Extension**: Chrome Extension Manifest V3, vanilla JavaScript
-- **Backend**: Node.js, Express, Google Gemini API, MongoDB (optional)
-- **Dev Tools**: Sharp (icon generation), nodemon
+
+- **Frontend:** Chrome Extension (Manifest V3), vanilla JS
+- **Backend:** Node.js/Express, MongoDB (optional telemetry), Google Gemini API
+- **Tools:** Sharp (icon generation)
 
 ## Architecture
-- `extension/`: Chrome extension with content scripts, background service worker, popup, and options UI
-- `backend/`: Express API server that proxies requests to Google Gemini API
-- Content script detects typing, sends context to backend, displays inline/popup/side panel suggestions
+
+- `extension/`: Chrome extension (content scripts, background service worker, popup, options)
+- `backend/`: Express API server that proxies requests to Gemini API
+- Content script detects typing, sends context to backend, displays inline/popup/side-panel suggestions
 
 ## Code Style
-- Vanilla JS (no build step or transpilation)
-- Inline documentation for complex logic
-- Configuration via `chrome.storage.local`
-- API key stored client-side only, never on backend
+
+- Vanilla JavaScript (no frameworks in extension)
+- API keys stored locally in browser, never on server
+- Debounced typing detection (configurable delay)
+- CSS injected via content script

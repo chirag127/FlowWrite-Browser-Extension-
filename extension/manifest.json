@@ -1,15 +1,14 @@
 {
   "manifest_version": 3,
-  "name": "FlowWrite - Inline AI suggestions",
-  "version": "1.0.3",
-  "description": "Real-time AI writing suggestions as you type in web forms and text fields",
+  "name": "FlowWrite - AI Writing Assistant",
+  "version": "2.0.0",
+  "description": "Real-time AI writing suggestions powered by Google Gemini, directly in your browser",
   "permissions": [
     "storage",
     "activeTab"
   ],
   "host_permissions": [
-    "https://*/*",
-    "http://*/*"
+    "https://generativelanguage.googleapis.com/*"
   ],
   "background": {
     "service_worker": "background.js"
