@@ -1,24 +1,36 @@
-# FlowWrite - Agent Guide
-
-## Setup
-```bash
-npm install                    # Install root dependencies (Sharp for icon generation)
-cd backend && npm install      # Install backend dependencies (Express, Google Gemini API, MongoDB)
-```
+# FlowWrite Browser Extension - Agent Guide
 
 ## Commands
-- **Build**: N/A (no build step required)
-- **Lint**: N/A (no linter configured)
-- **Test**: N/A (no tests configured)
-- **Dev Server**: `cd backend && npm run dev` (nodemon on port 3000)
-- **Generate Icons**: `npm run generate-icons` (converts SVG to PNG icons)
+
+**Setup:**
+```bash
+npm install
+cd backend && npm install && cd ..
+npm run generate-icons
+```
+
+**Dev Server:** `cd backend && npm run dev` (runs on port 3000)  
+**Build:** N/A (extension loads directly from `extension/` folder)  
+**Lint:** No linter configured  
+**Test:** No tests configured
 
 ## Tech Stack
-- **Frontend**: Vanilla JavaScript (Chrome Extension Manifest v3)
-- **Backend**: Node.js, Express, MongoDB (optional telemetry), Google Gemini API
-- **No build tooling**: Direct JS files, no TypeScript/bundler
+
+- **Frontend:** Vanilla JavaScript (Chrome Extension Manifest V3)
+- **Backend:** Node.js/Express, MongoDB (optional telemetry), Google Gemini API
+- **Build Tools:** npm, Sharp (icon generation)
 
 ## Architecture
-- `extension/`: Chrome extension (manifest.json, content scripts, background service worker, popup, options page)
-- `backend/`: Express API server (suggestion endpoint, telemetry collection)
-- Content script injects into all pages, detects typing, shows inline/popup/side panel AI suggestions
+
+- `extension/` - Chrome extension (manifest.json, content scripts, background service worker, popup/options UI)
+- `backend/` - Express API server (routes, models, config)
+- Content script injects into pages, detects typing, sends context to backend
+- Backend forwards requests to Gemini API, returns suggestions
+- Suggestions displayed inline/popup/side panel based on user preference
+
+## Code Style
+
+- No formal linter/formatter configured
+- Uses JSDoc comments for function documentation
+- Tab key accepts suggestions, Esc dismisses
+- API key stored in chrome.storage.local

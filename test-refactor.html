@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlowWrite Refactor Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 10px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 4px;
+        }
+        .success { color: green; }
+        .error { color: red; }
+        button {
+            margin: 10px 5px;
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>FlowWrite Refactor Test</h1>
+    <p>Test the refactored content.js with AI provider service manager</p>
+    
+    <h2>Test Input Field</h2>
+    <textarea id="testInput" placeholder="Start typing to test AI suggestions..."></textarea>
+    
+    <div>
+        <button id="testBtn">Test AI Provider Manager</button>
+        <button id="checkStatusBtn">Check Status</button>
+    </div>
+    
+    <div class="status" id="status">
+        <strong>Status:</strong> Ready for testing
+    </div>
+    
+    <script src="extension/ai-provider-manager.js"></script>
+    <script>
+        const statusDiv = document.getElementById('status');
+        
+        document.getElementById('testBtn').addEventListener('click', async () => {
+            statusDiv.innerHTML = '<strong>Status:</strong> Testing AI Provider Manager...';
+            
+            try {
+                const manager = new AIProviderManager();
+                const apiKey = prompt('Enter your Google Gemini API key:');
+                
+                if (!apiKey) {
+                    statusDiv.innerHTML = '<strong>Status:</strong> <span class="error">No API key provided</span>';
+                    return;
+                }
+                
+                statusDiv.innerHTML = '<strong>Status:</strong> Generating suggestion...';
+                
+                const result = await manager.generateSuggestion(
+                    'The quick brown fox',
+                    apiKey,
+                    null
+                );
+                
+                statusDiv.innerHTML = `
+                    <strong>Status:</strong> <span class="success">Success!</span><br>
+                    <strong>Suggestion:</strong> "${result.suggestion}"<br>
+                    <strong>Model:</strong> ${result.model}<br>
+                    <strong>Provider:</strong> ${result.provider}
+                `;
+            } catch (error) {
+                statusDiv.innerHTML = `<strong>Status:</strong> <span class="error">Error: ${error.message}</span>`;
+                console.error(error);
+            }
+        });
+        
+        document.getElementById('checkStatusBtn').addEventListener('click', () => {
+            try {
+                const manager = new AIProviderManager();
+                const currentModel = manager.getCurrentModel();
+                const provider = manager.currentProvider;
+                
+                statusDiv.innerHTML = `
+                    <strong>Status:</strong> <span class="success">Manager initialized</span><br>
+                    <strong>Current Model:</strong> ${currentModel}<br>
+                    <strong>Current Provider:</strong> ${provider}<br>
+                    <strong>Available Models:</strong> ${manager.providers[provider].models.join(', ')}
+                `;
+            } catch (error) {
+                statusDiv.innerHTML = `<strong>Status:</strong> <span class="error">Error: ${error.message}</span>`;
+            }
+        });
+    </script>
+</body>
+</html>

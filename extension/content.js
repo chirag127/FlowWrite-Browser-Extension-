@@ -5,7 +5,7 @@
  * 1. Detect user typing in text fields
  * 2. Implement debounce mechanism
  * 3. Extract context from the input field
- * 4. Request AI suggestions
+ * 4. Generate suggestions using client-side AI provider service manager
  * 5. Display suggestions
  * 6. Handle user interactions (Tab key to accept, Esc to dismiss)
  */
@@ -26,12 +26,15 @@ let debounceTimer = null;
 let currentSuggestion = null;
 let currentField = null;
 let suggestionElement = null;
-let inlineSuggestionElement = null; // For tracking the inline suggestion element in dual mode
+let inlineSuggestionElement = null;
 let isWaitingForSuggestion = false;
-let currentRequestId = 0; // Track the most recent request
-let suggestionAbortController = null; // For cancelling in-flight fetch requests
-let contentEditableMutationObserver = null; // For tracking changes to ContentEditable elements
-let contentEditableOriginalRange = null; // For storing the original selection range in ContentEditable elements
+let currentRequestId = 0;
+let suggestionAbortController = null;
+let contentEditableMutationObserver = null;
+let contentEditableOriginalRange = null;
+
+// AI Provider Manager for client-side suggestions
+let aiProviderManager = null;
 
 /**
  * Inject the CSS file into the page
@@ -49,6 +52,9 @@ function injectCSS() {
  * Initialize the content script
  */
 function init() {
+    // Initialize AI provider manager
+    aiProviderManager = new AIProviderManager();
+
     // Inject CSS
     injectCSS();
 
@@ -1031,159 +1037,105 @@ function getVisibleTextNodes() {
 }
 
 /**
- * Request a suggestion from the Gemini API
+ * Request a suggestion using AI provider manager
  * @param {string} context - The context to complete
  */
-function requestSuggestion(context) {
-    // Check if the API key is set
+async function requestSuggestion(context) {
     if (!config.apiKey) {
         console.error("FlowWrite: API key not set");
         debugLog("API key not set, cannot request suggestion");
         return;
     }
 
-    // Generate a new request ID for this request
     const requestId = ++currentRequestId;
 
-    debugLog("Requesting suggestion from Gemini API", {
+    debugLog("Requesting suggestion with AI provider manager", {
         contextLength: context.length,
         requestId: requestId,
+        currentModel: aiProviderManager.getCurrentModel(),
     });
 
-    // Always remove any existing suggestion before showing the loading indicator
-    // This ensures previous ghost text is removed when a new request starts
     removeSuggestion();
-
-    // Show loading indicator
     showLoadingIndicator();
-
-    // Set the waiting flag
     isWaitingForSuggestion = true;
 
-    // Cancel any previous suggestion request if exists and create a new AbortController instance
     if (suggestionAbortController) {
         suggestionAbortController.abort();
-        debugLog("Aborted previous fetch request", {
-            requestId: requestId - 1,
-        });
+        debugLog("Aborted previous request", { requestId: requestId - 1 });
     }
     suggestionAbortController = new AbortController();
 
-    // Extract page context if enabled
     const pageContext = config.enablePageContext ? extractPageContext() : null;
 
-    // Prepare prompt
-    let prompt = `Continue this text naturally and concisely. Only provide the continuation, do not repeat the input:\n\n${context}`;
-    
     if (pageContext) {
-        prompt = `Page context: ${JSON.stringify(pageContext)}\n\n${prompt}`;
         debugLog("Including page context in request", {
             pageContextSize: JSON.stringify(pageContext).length,
             requestId: requestId,
         });
     }
 
-    // Send the request directly to Gemini API
-    fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${config.apiKey}`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-            contents: [{
-                parts: [{
-                    text: prompt
-                }]
-            }],
-            generationConfig: {
-                temperature: 0.7,
-                maxOutputTokens: 100,
-            }
-        }),
-        signal: suggestionAbortController.signal,
-    })
-        .then((response) => {
-            // Check if the response is ok
-            if (!response.ok) {
-                debugLog("Gemini API response not OK", {
-                    status: response.status,
-                    requestId: requestId,
-                });
-                throw new Error(`HTTP error ${response.status}`);
-            }
-            return response.json();
-        })
-        .then((data) => {
-            // Only process this response if it's from the most recent request
-            if (requestId !== currentRequestId) {
-                debugLog("Ignoring outdated suggestion response", {
-                    requestId: requestId,
-                    currentRequestId: currentRequestId,
-                });
-                return;
-            }
+    try {
+        const result = await aiProviderManager.generateSuggestion(
+            context,
+            config.apiKey,
+            pageContext,
+            suggestionAbortController.signal
+        );
 
-            // Hide loading indicator
-            hideLoadingIndicator();
+        if (requestId !== currentRequestId) {
+            debugLog("Ignoring outdated suggestion response", {
+                requestId: requestId,
+                currentRequestId: currentRequestId,
+            });
+            return;
+        }
 
-            // Extract suggestion from Gemini response
-            if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
-                currentSuggestion = data.candidates[0].content.parts[0].text.trim();
-                debugLog("Received suggestion from Gemini API", {
-                    suggestion:
-                        currentSuggestion.substring(0, 50) +
-                        (currentSuggestion.length > 50 ? "..." : ""),
-                    requestId: requestId,
-                });
-                showSuggestion(currentSuggestion);
-            } else {
-                debugLog("No suggestion received from Gemini API", {
-                    requestId: requestId,
-                });
-            }
-        })
-        .catch((error) => {
-            // Check if this is an abort error (request was cancelled)
-            if (error.name === "AbortError") {
-                debugLog("Fetch request was aborted", {
-                    requestId: requestId,
-                });
-                return; // Don't show error for aborted requests
-            }
+        hideLoadingIndicator();
 
-            // Only process this error if it's from the most recent request
-            if (requestId !== currentRequestId) {
-                return;
-            }
-
-            console.error("FlowWrite: Error requesting suggestion:", error);
-            debugLog("Error requesting suggestion", {
-                error: error.message,
-                errorName: error.name,
+        if (result.suggestion) {
+            currentSuggestion = result.suggestion;
+            debugLog("Received suggestion from AI provider", {
+                suggestion:
+                    result.suggestion.substring(0, 50) +
+                    (result.suggestion.length > 50 ? "..." : ""),
+                model: result.model,
+                provider: result.provider,
                 requestId: requestId,
             });
+            showSuggestion(currentSuggestion);
+        } else {
+            debugLog("No suggestion received from AI provider", {
+                model: result.model,
+                provider: result.provider,
+                requestId: requestId,
+            });
+        }
+    } catch (error) {
+        if (error.message?.includes('timeout') || error.message?.includes('cancelled')) {
+            debugLog("Request was cancelled or timed out", { requestId: requestId });
+            return;
+        }
 
-            // Hide loading indicator
-            hideLoadingIndicator();
+        if (requestId !== currentRequestId) {
+            return;
+        }
 
-            // Show error indicator
-            showErrorIndicator();
-        })
-        .finally(() => {
-            // Only reset the waiting flag if this is the most recent request
-            if (requestId === currentRequestId) {
-                isWaitingForSuggestion = false;
-
-                // Clear the abort controller reference if this was the most recent request
-                // This helps with garbage collection
-                if (
-                    suggestionAbortController &&
-                    suggestionAbortController.signal.aborted
-                ) {
-                    suggestionAbortController = null;
-                }
-            }
+        console.error("FlowWrite: Error requesting suggestion:", error);
+        debugLog("Error requesting suggestion", {
+            error: error.message,
+            requestId: requestId,
         });
+
+        hideLoadingIndicator();
+        showErrorIndicator();
+    } finally {
+        if (requestId === currentRequestId) {
+            isWaitingForSuggestion = false;
+            if (suggestionAbortController && suggestionAbortController.signal.aborted) {
+                suggestionAbortController = null;
+            }
+        }
+    }
 }
 
 /**
@@ -2755,12 +2707,35 @@ function showErrorIndicator() {
 }
 
 /**
- * Send telemetry data (stub function)
+ * Store telemetry data locally
  * @param {boolean} accepted - Whether the suggestion was accepted
  * @param {string} interactionType - How the suggestion was accepted (tab, click, etc.)
  */
 function sendTelemetry(accepted, interactionType = "tab") {
-    // Telemetry disabled - backend removed
+    chrome.storage.local.get(['telemetryEnabled'], (result) => {
+        if (result.telemetryEnabled === false) {
+            return;
+        }
+
+        const telemetryData = {
+            accepted,
+            interactionType,
+            timestamp: Date.now(),
+            model: aiProviderManager ? aiProviderManager.getCurrentModel() : 'unknown',
+            provider: 'gemini'
+        };
+
+        chrome.storage.local.get(['telemetryLog'], (result) => {
+            const log = result.telemetryLog || [];
+            log.push(telemetryData);
+
+            if (log.length > 1000) {
+                log.shift();
+            }
+
+            chrome.storage.local.set({ telemetryLog: log });
+        });
+    });
 }
 
 /**

@@ -31,6 +31,7 @@
       "js": [
         "debug-utils.js",
         "mutation-observer.js",
+        "ai-provider-manager.js",
         "content.js"
       ],
       "run_at": "document_end"

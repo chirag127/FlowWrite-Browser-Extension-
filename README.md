@@ -13,7 +13,7 @@ Visit our [FlowWrite Website](https://chirag127.github.io/FlowWrite-Browser-Exte
 -   **Real-time AI Suggestions**: Get intelligent writing suggestions as you type, triggered by a brief pause.
 -   **Seamless Integration**: Accept suggestions instantly with the 'Tab' key or by clicking directly on them.
 -   **Customizable Experience**: Configure suggestion delay, presentation style, and site-specific settings.
--   **Privacy-Focused**: Your API key is stored securely in your browser and never on our servers. All requests go directly from your browser to Google Gemini API.
+-   **Privacy-Focused**: Your API key is stored securely in your browser and never on our servers.
 -   **Site-Specific Control**: Enable or disable FlowWrite on specific websites.
 
 ## 🚀 Getting Started
@@ -45,6 +45,9 @@ Visit our [FlowWrite Website](https://chirag127.github.io/FlowWrite-Browser-Exte
 
     ```bash
     npm install
+    cd backend
+    npm install
+    cd ..
     ```
 
 3. Generate icons (if needed):
@@ -58,6 +61,12 @@ Visit our [FlowWrite Website](https://chirag127.github.io/FlowWrite-Browser-Exte
     - Open Chrome and navigate to `chrome://extensions/`
     - Enable "Developer mode" in the top-right corner
     - Click "Load unpacked" and select the `extension` folder
+
+5. Start the backend server:
+    ```bash
+    cd backend
+    npm run dev
+    ```
 
 ## 🔧 Usage
 
@@ -82,9 +91,8 @@ Visit our [FlowWrite Website](https://chirag127.github.io/FlowWrite-Browser-Exte
 FlowWrite takes your privacy seriously:
 
 -   Your API key is stored securely in your browser using `chrome.storage.local`
--   Your API key is never stored on any external servers
--   Your text is sent directly from your browser to Google Gemini API for generating suggestions
--   No intermediary servers process your data
+-   Your API key is never stored on our servers
+-   Your text is only sent to Google Gemini API for generating suggestions
 -   No user-identifiable data is collected
 
 ## 👨‍💻 Development
@@ -110,6 +118,16 @@ FlowWrite-Browser-Extension/
 │       ├── icon48.png          # 48x48 icon
 │       ├── icon128.png         # 128x128 icon
 │       └── icon.svg            # Source SVG icon
+├── backend/                    # Node.js backend
+│   ├── server.js               # Main server file
+│   ├── routes/                 # API routes
+│   │   └── api.js              # API endpoints
+│   ├── models/                 # MongoDB models
+│   │   └── telemetry.js        # Telemetry data model
+│   ├── config/                 # Configuration files
+│   │   └── db.js               # Database configuration
+│   ├── package.json            # Backend dependencies
+│   └── README.md               # Backend documentation
 ├── index.html                  # Landing page for GitHub Pages
 ├── privacy-policy.html         # Privacy policy page for GitHub Pages
 ├── package.json                # Root package.json for development tools
@@ -119,21 +137,41 @@ FlowWrite-Browser-Extension/
 
 ### Architecture
 
-FlowWrite is a pure client-side Chrome extension:
+FlowWrite uses a client-side architecture with direct AI provider integration:
 
 1. **Frontend (Chrome Extension)**:
 
-    - **Content Script**: Detects typing in text fields, sends requests directly to Google Gemini API, and displays suggestions
+    - **Content Script**: Detects typing in text fields, generates suggestions using AI provider manager, and displays suggestions
+    - **AI Provider Manager**: Handles client-side API calls to Google Gemini with model rotation and fallback handling
     - **Background Service Worker**: Handles communication and extension lifecycle
     - **Options Page**: Allows users to configure the extension
     - **Popup UI**: Provides quick access to common functions
 
-2. **Google Gemini API**: The extension communicates directly with Google's Gemini API to generate text suggestions
+2. **Backend (Node.js/Express)** [Legacy]:
+    - Previously used for proxying API requests
+    - Now optional for telemetry collection only
+    - All AI generation happens client-side
+
+### Client-Side AI Integration
+
+FlowWrite now uses a client-side AI provider manager that:
+
+-   Makes direct API calls to Google Gemini from the browser
+-   Supports multiple models with automatic rotation on failure:
+    -   `gemini-2.0-flash-exp` (primary)
+    -   `gemini-2.0-flash-thinking-exp-1219` (fallback 1)
+    -   `gemini-exp-1206` (fallback 2)
+-   Handles rate limiting and error recovery automatically
+-   Stores telemetry data locally in browser storage
+-   Eliminates the need for a backend server for core functionality
 
 ### Built With
 
 -   [Chrome Extension API](https://developer.chrome.com/docs/extensions/)
 -   [Google Gemini API](https://ai.google.dev/docs)
+-   [Node.js](https://nodejs.org/)
+-   [Express](https://expressjs.com/)
+-   [MongoDB](https://www.mongodb.com/)
 -   [Sharp](https://sharp.pixelplumbing.com/) (for icon generation)
 
 ## 🙌 Contributing
