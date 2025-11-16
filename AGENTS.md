@@ -1,32 +1,24 @@
-# Agent Commands & Guidelines
+# FlowWrite - Agent Guide
 
 ## Setup
 ```bash
-npm install                    # Install root dependencies (only needed for icon generation)
+npm install                    # Install root dependencies (Sharp for icon generation)
+cd backend && npm install      # Install backend dependencies (Express, Google Gemini API, MongoDB)
 ```
 
 ## Commands
-- **Build**: `npm run generate-icons` (generates icons from SVG)
-- **Lint**: No linter configured
-- **Test**: No tests configured
-- **Dev Server**: Not applicable (pure client-side extension)
+- **Build**: N/A (no build step required)
+- **Lint**: N/A (no linter configured)
+- **Test**: N/A (no tests configured)
+- **Dev Server**: `cd backend && npm run dev` (nodemon on port 3000)
+- **Generate Icons**: `npm run generate-icons` (converts SVG to PNG icons)
 
 ## Tech Stack
-- **Frontend**: Vanilla JavaScript Chrome Extension (Manifest v3)
-- **AI Providers**: Google Gemini API, OpenAI API, Anthropic Claude API (multi-provider support)
-- **Tools**: Sharp (icon generation)
-- **Architecture**: Pure client-side, no backend server required
+- **Frontend**: Vanilla JavaScript (Chrome Extension Manifest v3)
+- **Backend**: Node.js, Express, MongoDB (optional telemetry), Google Gemini API
+- **No build tooling**: Direct JS files, no TypeScript/bundler
 
 ## Architecture
-- `extension/`: Chrome extension code (content scripts, background worker, popup, options)
-- **Client-Side Only**: Extension makes direct API calls to AI providers from the browser
-- Content script injects into all pages, detects typing, calls AI provider APIs directly
-- Background service worker handles extension lifecycle and message passing
-- All API keys stored locally in browser storage, never sent to third parties
-
-## Code Style
-- No TypeScript, pure JavaScript
-- Inline CSS classes with `flowwrite-` prefix
-- Debug logging with `debugLog()` utility
-- Store config in `chrome.storage.local`
-- Direct API calls to AI providers (no backend proxy)
+- `extension/`: Chrome extension (manifest.json, content scripts, background service worker, popup, options page)
+- `backend/`: Express API server (suggestion endpoint, telemetry collection)
+- Content script injects into all pages, detects typing, shows inline/popup/side panel AI suggestions
