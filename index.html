@@ -355,7 +355,7 @@
             <div class="header-content">
                 <img src="extension/icons/icon128.png" alt="FlowWrite Logo" class="logo">
                 <h1>FlowWrite</h1>
-                <p class="tagline">Real-time AI writing suggestions as you type</p>
+                <p class="tagline">Real-time AI writing suggestions as you type - powered by your choice of AI provider</p>
                 <div class="header-buttons">
                     <a href="https://github.com/chirag127/FlowWrite-Browser-Extension-" class="btn" target="_blank">GitHub Repository</a>
                     <a href="privacy-policy.html" class="btn btn-outline" target="_blank">Privacy Policy</a>
@@ -369,8 +369,8 @@
         <div class="container">
             <h2 class="section-title">About FlowWrite</h2>
             <div class="about-content">
-                <p>FlowWrite is a browser extension that provides real-time AI-powered writing suggestions as you type in web forms and text fields. Powered by Google's Gemini AI, FlowWrite helps you write more efficiently, overcome writer's block, and improve your writing quality.</p>
-                <p>Whether you're composing emails, writing social media posts, or filling out forms, FlowWrite is your intelligent writing assistant that works seamlessly across the web.</p>
+                <p>FlowWrite is a browser extension that provides real-time AI-powered writing suggestions as you type in web forms and text fields. With support for multiple AI providers including Google Gemini, OpenAI, and Anthropic Claude, FlowWrite helps you write more efficiently, overcome writer's block, and improve your writing quality.</p>
+                <p>Whether you're composing emails, writing social media posts, or filling out forms, FlowWrite is your intelligent writing assistant that works seamlessly across the web - all while keeping your data private with direct client-side API calls.</p>
             </div>
         </div>
     </section>
@@ -386,6 +386,11 @@
                     <p>Get intelligent writing suggestions as you type, helping you complete sentences and formulate ideas faster.</p>
                 </div>
                 <div class="feature-card">
+                    <div class="feature-icon">🤖</div>
+                    <h3 class="feature-title">Multi-Provider Support</h3>
+                    <p>Choose from Google Gemini, OpenAI, Anthropic Claude, and more. Use your preferred AI provider with your own API key.</p>
+                </div>
+                <div class="feature-card">
                     <div class="feature-icon">🌐</div>
                     <h3 class="feature-title">Works Everywhere</h3>
                     <p>FlowWrite works in any text field across the web, including email clients, social media, and messaging platforms.</p>
@@ -398,17 +403,12 @@
                 <div class="feature-card">
                     <div class="feature-icon">🔒</div>
                     <h3 class="feature-title">Privacy-Focused</h3>
-                    <p>Your API key is stored securely in your browser and never on our servers. Your data remains private.</p>
+                    <p>Your API keys are stored locally in your browser. All AI requests are made directly from your browser - no backend server or third-party tracking.</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">⚙️</div>
                     <h3 class="feature-title">Customizable</h3>
-                    <p>Configure suggestion delay, presentation style, and enable/disable FlowWrite on specific websites.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🧠</div>
-                    <h3 class="feature-title">Powered by Gemini AI</h3>
-                    <p>Leverage Google's advanced Gemini AI model for high-quality, context-aware writing suggestions.</p>
+                    <p>Configure AI provider, suggestion delay, presentation style, and enable/disable FlowWrite on specific websites.</p>
                 </div>
             </div>
         </div>
@@ -441,8 +441,8 @@
                 </div>
                 <div class="step">
                     <div class="step-number">5</div>
-                    <h3>Configure API Key</h3>
-                    <p>Click on the FlowWrite extension icon, go to options, and enter your Google Gemini API key from <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio</a>.</p>
+                    <h3>Configure Your AI Provider</h3>
+                    <p>Click on the FlowWrite extension icon, go to options, select your preferred AI provider, and enter your API key from <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio</a>, <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI</a>, or <a href="https://console.anthropic.com/settings/keys" target="_blank">Anthropic</a>.</p>
                 </div>
             </div>
         </div>
@@ -480,13 +480,13 @@
                     <h3>Google Gemini AI</h3>
                 </div>
                 <div class="tech-item">
-                    <h3>Node.js Backend</h3>
+                    <h3>OpenAI API</h3>
                 </div>
                 <div class="tech-item">
-                    <h3>Express.js</h3>
+                    <h3>Anthropic Claude API</h3>
                 </div>
                 <div class="tech-item">
-                    <h3>MongoDB</h3>
+                    <h3>Client-Side Architecture</h3>
                 </div>
             </div>
         </div>

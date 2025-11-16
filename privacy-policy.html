@@ -234,16 +234,16 @@
                 <h2>Information We Collect</h2>
                 <p>FlowWrite collects the following information:</p>
                 <ul>
-                    <li><strong>User Preferences</strong> - We store your extension settings locally on your device, including your API key, enabled/disabled status, suggestion delay, presentation mode, and list of disabled sites.</li>
-                    <li><strong>Text Context</strong> - When you type in a text field, FlowWrite temporarily processes the text you've entered to generate appropriate suggestions. This text is sent to our backend server and then to the Google Gemini API.</li>
-                    <li><strong>Basic Usage Data</strong> - We collect anonymous usage data, such as whether suggestions were accepted or rejected, to improve the extension's functionality.</li>
+                    <li><strong>User Preferences</strong> - We store your extension settings locally on your device, including your AI provider choice, API key, enabled/disabled status, suggestion delay, presentation mode, and list of disabled sites.</li>
+                    <li><strong>Text Context</strong> - When you type in a text field, FlowWrite temporarily processes the text you've entered to generate appropriate suggestions. This text is sent directly from your browser to your chosen AI provider's API (such as Google Gemini, OpenAI, or Anthropic).</li>
                 </ul>
                 <p><strong>What We Do NOT Collect:</strong></p>
                 <ul>
                     <li>Personal identification information</li>
                     <li>Your browsing history</li>
                     <li>Information from websites you visit beyond what's necessary for generating suggestions</li>
-                    <li>Your Google Gemini API key is never stored on our servers</li>
+                    <li>Your API keys are stored locally in your browser and never sent to any third-party servers</li>
+                    <li>No usage data or telemetry is collected</li>
                 </ul>
             </div>
 
@@ -261,18 +261,21 @@
 
             <div class="policy-section">
                 <h2>Data Storage & Security</h2>
-                <p>Your preferences and settings are stored locally on your device using Chrome's storage API. The text you type is temporarily processed on our backend server and the Google Gemini API to generate suggestions, but is not permanently stored.</p>
-                <p>We implement appropriate security measures to protect against unauthorized access, alteration, disclosure, or destruction of your information. However, no method of transmission over the Internet or electronic storage is 100% secure, and we cannot guarantee absolute security.</p>
-                <p>Your API key is stored securely in your browser using <code>chrome.storage.local</code> and is only used to authenticate requests to the Google Gemini API. We do not have access to your API key unless you explicitly share it with us for troubleshooting purposes.</p>
+                <p>Your preferences and settings are stored locally on your device using Chrome's storage API. The text you type is sent directly from your browser to your chosen AI provider's API to generate suggestions. <span class="highlight">FlowWrite does not use any backend server</span> - all API calls are made directly from your browser.</p>
+                <p>Your API keys are stored securely in your browser using <code>chrome.storage.local</code> and are only used to authenticate requests to your chosen AI provider. Your API keys never leave your browser except to make direct API calls to the AI provider you've selected.</p>
+                <p>We do not have access to your API keys or the text you type. Your data is only shared with the AI provider you choose (such as Google, OpenAI, or Anthropic) according to their respective privacy policies.</p>
             </div>
 
             <div class="policy-section">
-                <h2>Third-Party Services</h2>
-                <p>FlowWrite uses the following third-party services:</p>
+                <h2>Third-Party AI Provider Services</h2>
+                <p>FlowWrite supports multiple AI providers that you can choose from. When you use FlowWrite, your text context is sent directly from your browser to your chosen AI provider's API. FlowWrite acts as a client-side interface and does not intercept or store this data.</p>
+                <p>Supported AI providers include:</p>
                 <ul>
-                    <li><strong>Google Gemini API</strong> - We use Google's Gemini AI to generate writing suggestions. Your text context is sent to this service. Please refer to <a href="https://policies.google.com/privacy" target="_blank">Google's Privacy Policy</a> for more information on how they handle data.</li>
+                    <li><strong>Google Gemini</strong> - Please refer to <a href="https://policies.google.com/privacy" target="_blank">Google's Privacy Policy</a></li>
+                    <li><strong>OpenAI</strong> - Please refer to <a href="https://openai.com/policies/privacy-policy" target="_blank">OpenAI's Privacy Policy</a></li>
+                    <li><strong>Anthropic Claude</strong> - Please refer to <a href="https://www.anthropic.com/privacy" target="_blank">Anthropic's Privacy Policy</a></li>
                 </ul>
-                <p>Your API key for Google Gemini is stored locally on your device and is used to authenticate requests to the Google Gemini API. We do not have access to your API key unless you explicitly share it with us for troubleshooting purposes.</p>
+                <p>Your API keys are stored locally on your device and are used only to authenticate requests directly to your chosen AI provider. <span class="highlight">We do not have access to your API keys or text content.</span></p>
             </div>
 
             <div class="policy-section">

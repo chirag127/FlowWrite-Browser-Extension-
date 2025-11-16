@@ -1,36 +1,32 @@
-# AGENTS.md
+# Agent Commands & Guidelines
 
-## Commands
-
-**Setup:**
+## Setup
 ```bash
-npm install
-cd backend && npm install && cd ..
+npm install                    # Install root dependencies (only needed for icon generation)
 ```
 
-**Build:** `npm run generate-icons` (generates PNG icons from SVG)
-
-**Lint:** Not configured
-
-**Test:** Not configured
-
-**Dev Server:** `cd backend && npm run dev` (runs on port 3000)
+## Commands
+- **Build**: `npm run generate-icons` (generates icons from SVG)
+- **Lint**: No linter configured
+- **Test**: No tests configured
+- **Dev Server**: Not applicable (pure client-side extension)
 
 ## Tech Stack
-
-- **Frontend:** Chrome Extension (Manifest V3), vanilla JS
-- **Backend:** Node.js/Express, MongoDB (optional telemetry), Google Gemini API
-- **Tools:** Sharp (icon generation)
+- **Frontend**: Vanilla JavaScript Chrome Extension (Manifest v3)
+- **AI Providers**: Google Gemini API, OpenAI API, Anthropic Claude API (multi-provider support)
+- **Tools**: Sharp (icon generation)
+- **Architecture**: Pure client-side, no backend server required
 
 ## Architecture
-
-- `extension/`: Chrome extension (content scripts, background service worker, popup, options)
-- `backend/`: Express API server that proxies requests to Gemini API
-- Content script detects typing, sends context to backend, displays inline/popup/side-panel suggestions
+- `extension/`: Chrome extension code (content scripts, background worker, popup, options)
+- **Client-Side Only**: Extension makes direct API calls to AI providers from the browser
+- Content script injects into all pages, detects typing, calls AI provider APIs directly
+- Background service worker handles extension lifecycle and message passing
+- All API keys stored locally in browser storage, never sent to third parties
 
 ## Code Style
-
-- Vanilla JavaScript (no frameworks in extension)
-- API keys stored locally in browser, never on server
-- Debounced typing detection (configurable delay)
-- CSS injected via content script
+- No TypeScript, pure JavaScript
+- Inline CSS classes with `flowwrite-` prefix
+- Debug logging with `debugLog()` utility
+- Store config in `chrome.storage.local`
+- Direct API calls to AI providers (no backend proxy)
