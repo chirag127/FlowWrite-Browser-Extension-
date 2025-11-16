@@ -10,6 +10,23 @@
 // Default configuration
 const DEFAULT_CONFIG = {
     apiKey: "",
+    providers: {
+        gemini: {
+            enabled: false,
+            apiKey: "",
+            model: "gemini-1.5-flash"
+        },
+        cerebras: {
+            enabled: false,
+            apiKey: "",
+            model: "llama3.1-8b"
+        },
+        groq: {
+            enabled: false,
+            apiKey: "",
+            model: "llama-3.3-70b-versatile"
+        }
+    },
     isEnabled: true,
     disabledSites: [],
     suggestionDelay: 500,
@@ -22,10 +39,10 @@ const DEFAULT_CONFIG = {
  * Initialize the extension
  */
 function init() {
-    // Initialize storage with default values if not set
     chrome.storage.local.get(
         [
             "apiKey",
+            "providers",
             "isEnabled",
             "disabledSites",
             "suggestionDelay",
@@ -38,6 +55,8 @@ function init() {
 
             if (result.apiKey === undefined)
                 updates.apiKey = DEFAULT_CONFIG.apiKey;
+            if (result.providers === undefined)
+                updates.providers = DEFAULT_CONFIG.providers;
             if (result.isEnabled === undefined)
                 updates.isEnabled = DEFAULT_CONFIG.isEnabled;
             if (result.disabledSites === undefined)
@@ -51,7 +70,6 @@ function init() {
             if (result.debugMode === undefined)
                 updates.debugMode = DEFAULT_CONFIG.debugMode;
 
-            // Only update if there are changes
             if (Object.keys(updates).length > 0) {
                 chrome.storage.local.set(updates);
             }
@@ -63,7 +81,6 @@ function init() {
  * Handle browser action clicks
  */
 chrome.action.onClicked.addListener(() => {
-    // Open the options page
     chrome.runtime.openOptionsPage();
 });
 
@@ -71,13 +88,12 @@ chrome.action.onClicked.addListener(() => {
  * Handle messages from content scripts or options page
  */
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-    // Handle different message types
     switch (message.type) {
         case "GET_CONFIG":
-            // Get the configuration from storage
             chrome.storage.local.get(
                 [
                     "apiKey",
+                    "providers",
                     "isEnabled",
                     "disabledSites",
                     "suggestionDelay",
@@ -89,39 +105,78 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
                     sendResponse(result);
                 }
             );
-            return true; // Keep the message channel open for the async response
+            return true;
 
         case "SET_CONFIG":
-            // Update the configuration in storage
             chrome.storage.local.set(message.config, () => {
                 sendResponse({ success: true });
             });
-            return true; // Keep the message channel open for the async response
+            return true;
 
         case "CLEAR_CONFIG":
-            // Reset the configuration to defaults
             chrome.storage.local.set(DEFAULT_CONFIG, () => {
                 sendResponse({ success: true });
             });
-            return true; // Keep the message channel open for the async response
+            return true;
 
         case "CHECK_API_KEY":
-            // Check if the API key is valid
-            // This would typically involve making a test request to the backend
-            // For now, we'll just check if it's not empty
-            if (!message.apiKey) {
-                sendResponse({ valid: false, error: "API key is empty" });
+            validateProviderApiKey(message.provider, message.apiKey, sendResponse);
+            return true;
+
+        default:
+            sendResponse({ error: "Unknown message type" });
+            return false;
+    }
+});
+
+/**
+ * Validate API key for a specific provider
+ * @param {string} provider - Provider name (gemini, cerebras, groq)
+ * @param {string} apiKey - API key to validate
+ * @param {Function} sendResponse - Callback function
+ */
+function validateProviderApiKey(provider, apiKey, sendResponse) {
+    if (!apiKey) {
+        sendResponse({ valid: false, error: "API key is empty" });
+        return;
+    }
+
+    // Basic validation - just check format
+    switch (provider) {
+        case "gemini":
+            // Gemini API keys typically start with "AI" and are 39 characters
+            if (apiKey.length < 20) {
+                sendResponse({ valid: false, error: "API key appears to be too short" });
             } else {
                 sendResponse({ valid: true });
             }
-            return false; // No async response needed
+            break;
+
+        case "cerebras":
+            // Cerebras API keys format validation
+            if (apiKey.length < 20) {
+                sendResponse({ valid: false, error: "API key appears to be too short" });
+            } else {
+                sendResponse({ valid: true });
+            }
+            break;
+
+        case "groq":
+            // Groq API keys typically start with "gsk_"
+            if (apiKey.startsWith("gsk_") && apiKey.length > 20) {
+                sendResponse({ valid: true });
+            } else if (apiKey.length < 20) {
+                sendResponse({ valid: false, error: "API key appears to be too short" });
+            } else {
+                sendResponse({ valid: true });
+            }
+            break;
 
         default:
-            // Unknown message type
-            sendResponse({ error: "Unknown message type" });
-            return false; // No async response needed
+            sendResponse({ valid: false, error: "Unknown provider" });
+            break;
     }
-});
+}
 
 // Initialize the extension when the service worker starts
 init();

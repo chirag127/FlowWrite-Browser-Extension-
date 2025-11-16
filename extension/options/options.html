@@ -16,33 +16,181 @@
 
             <main>
                 <section class="option-section">
-                    <h2>API Key</h2>
-                    <div class="option-row">
-                        <label for="apiKey">Google Gemini API Key:</label>
-                        <div class="input-group">
-                            <input
-                                type="password"
-                                id="apiKey"
-                                placeholder="Enter your API key"
-                            />
-                            <button
-                                id="toggleApiKey"
-                                class="icon-button"
-                                title="Show/Hide API Key"
-                            >
-                                👁️
-                            </button>
+                    <h2>AI Provider Configuration</h2>
+                    <p class="help-text" style="margin-left: 0; margin-bottom: 16px;">
+                        Configure one or more AI providers. The first enabled provider will be used for generating suggestions.
+                    </p>
+
+                    <!-- Google Gemini Provider -->
+                    <div class="provider-card">
+                        <div class="provider-header">
+                            <h3>Google Gemini</h3>
+                            <div class="toggle-switch">
+                                <input
+                                    type="checkbox"
+                                    id="geminiEnabled"
+                                    class="toggle-input"
+                                />
+                                <label for="geminiEnabled" class="toggle-label"></label>
+                            </div>
+                        </div>
+                        
+                        <div class="provider-content">
+                            <div class="option-row-compact">
+                                <label for="geminiApiKey">API Key:</label>
+                                <div class="input-group">
+                                    <input
+                                        type="password"
+                                        id="geminiApiKey"
+                                        placeholder="Enter your Gemini API key"
+                                    />
+                                    <button
+                                        class="icon-button toggle-key"
+                                        data-target="geminiApiKey"
+                                        title="Show/Hide API Key"
+                                    >
+                                        👁️
+                                    </button>
+                                    <button
+                                        class="icon-button validate-key"
+                                        data-provider="gemini"
+                                        title="Validate API Key"
+                                    >
+                                        ✓
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="geminiStatus" class="status-message"></div>
+
+                            <div class="option-row-compact">
+                                <label for="geminiModel">Model:</label>
+                                <select id="geminiModel">
+                                    <option value="gemini-1.5-flash">Gemini 1.5 Flash (Fast)</option>
+                                    <option value="gemini-1.5-pro">Gemini 1.5 Pro (Advanced)</option>
+                                    <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash (Experimental)</option>
+                                </select>
+                            </div>
+
+                            <p class="help-text" style="margin-left: 0;">
+                                Get your API key from
+                                <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio</a>
+                            </p>
                         </div>
                     </div>
-                    <p class="help-text">
-                        Get your API key from
-                        <a
-                            href="https://aistudio.google.com/app/apikey"
-                            target="_blank"
-                            >Google AI Studio</a
-                        >
-                    </p>
-                    <div id="apiKeyStatus" class="status-message"></div>
+
+                    <!-- Cerebras Provider -->
+                    <div class="provider-card">
+                        <div class="provider-header">
+                            <h3>Cerebras</h3>
+                            <div class="toggle-switch">
+                                <input
+                                    type="checkbox"
+                                    id="cerebrasEnabled"
+                                    class="toggle-input"
+                                />
+                                <label for="cerebrasEnabled" class="toggle-label"></label>
+                            </div>
+                        </div>
+                        
+                        <div class="provider-content">
+                            <div class="option-row-compact">
+                                <label for="cerebrasApiKey">API Key:</label>
+                                <div class="input-group">
+                                    <input
+                                        type="password"
+                                        id="cerebrasApiKey"
+                                        placeholder="Enter your Cerebras API key"
+                                    />
+                                    <button
+                                        class="icon-button toggle-key"
+                                        data-target="cerebrasApiKey"
+                                        title="Show/Hide API Key"
+                                    >
+                                        👁️
+                                    </button>
+                                    <button
+                                        class="icon-button validate-key"
+                                        data-provider="cerebras"
+                                        title="Validate API Key"
+                                    >
+                                        ✓
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="cerebrasStatus" class="status-message"></div>
+
+                            <div class="option-row-compact">
+                                <label for="cerebrasModel">Model:</label>
+                                <select id="cerebrasModel">
+                                    <option value="llama3.1-8b">Llama 3.1 8B</option>
+                                    <option value="llama3.1-70b">Llama 3.1 70B</option>
+                                </select>
+                            </div>
+
+                            <p class="help-text" style="margin-left: 0;">
+                                Get your API key from
+                                <a href="https://cloud.cerebras.ai/" target="_blank">Cerebras Cloud</a>
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Groq Provider -->
+                    <div class="provider-card">
+                        <div class="provider-header">
+                            <h3>Groq</h3>
+                            <div class="toggle-switch">
+                                <input
+                                    type="checkbox"
+                                    id="groqEnabled"
+                                    class="toggle-input"
+                                />
+                                <label for="groqEnabled" class="toggle-label"></label>
+                            </div>
+                        </div>
+                        
+                        <div class="provider-content">
+                            <div class="option-row-compact">
+                                <label for="groqApiKey">API Key:</label>
+                                <div class="input-group">
+                                    <input
+                                        type="password"
+                                        id="groqApiKey"
+                                        placeholder="Enter your Groq API key"
+                                    />
+                                    <button
+                                        class="icon-button toggle-key"
+                                        data-target="groqApiKey"
+                                        title="Show/Hide API Key"
+                                    >
+                                        👁️
+                                    </button>
+                                    <button
+                                        class="icon-button validate-key"
+                                        data-provider="groq"
+                                        title="Validate API Key"
+                                    >
+                                        ✓
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="groqStatus" class="status-message"></div>
+
+                            <div class="option-row-compact">
+                                <label for="groqModel">Model:</label>
+                                <select id="groqModel">
+                                    <option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile</option>
+                                    <option value="llama-3.1-70b-versatile">Llama 3.1 70B Versatile</option>
+                                    <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>
+                                    <option value="gemma2-9b-it">Gemma 2 9B</option>
+                                </select>
+                            </div>
+
+                            <p class="help-text" style="margin-left: 0;">
+                                Get your API key from
+                                <a href="https://console.groq.com/keys" target="_blank">Groq Console</a>
+                            </p>
+                        </div>
+                    </div>
                 </section>
 
                 <section class="option-section">
