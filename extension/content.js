@@ -5,7 +5,7 @@
  * 1. Detect user typing in text fields
  * 2. Implement debounce mechanism
  * 3. Extract context from the input field
- * 4. Send context to the backend
+ * 4. Request AI suggestions
  * 5. Display suggestions
  * 6. Handle user interactions (Tab key to accept, Esc to dismiss)
  */
@@ -32,10 +32,6 @@ let currentRequestId = 0; // Track the most recent request
 let suggestionAbortController = null; // For cancelling in-flight fetch requests
 let contentEditableMutationObserver = null; // For tracking changes to ContentEditable elements
 let contentEditableOriginalRange = null; // For storing the original selection range in ContentEditable elements
-
-// Backend API URL (should be configurable in production)
-// const API_URL = "http://192.168.31.232:3000/api";
-const API_URL = "https://flowwrite-browser-extension.onrender.com/api";
 
 /**
  * Inject the CSS file into the page
@@ -1035,7 +1031,7 @@ function getVisibleTextNodes() {
 }
 
 /**
- * Request a suggestion from the backend
+ * Request a suggestion from the Gemini API
  * @param {string} context - The context to complete
  */
 function requestSuggestion(context) {
@@ -1049,7 +1045,7 @@ function requestSuggestion(context) {
     // Generate a new request ID for this request
     const requestId = ++currentRequestId;
 
-    debugLog("Requesting suggestion from backend", {
+    debugLog("Requesting suggestion from Gemini API", {
         contextLength: context.length,
         requestId: requestId,
     });
@@ -1076,34 +1072,40 @@ function requestSuggestion(context) {
     // Extract page context if enabled
     const pageContext = config.enablePageContext ? extractPageContext() : null;
 
-    // Prepare request payload
-    const payload = {
-        context,
-        apiKey: config.apiKey,
-    };
-
-    // Add page context if available
+    // Prepare prompt
+    let prompt = `Continue this text naturally and concisely. Only provide the continuation, do not repeat the input:\n\n${context}`;
+    
     if (pageContext) {
-        payload.pageContext = pageContext;
+        prompt = `Page context: ${JSON.stringify(pageContext)}\n\n${prompt}`;
         debugLog("Including page context in request", {
             pageContextSize: JSON.stringify(pageContext).length,
             requestId: requestId,
         });
     }
 
-    // Send the request to the backend
-    fetch(`${API_URL}/suggest`, {
+    // Send the request directly to Gemini API
+    fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${config.apiKey}`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+            contents: [{
+                parts: [{
+                    text: prompt
+                }]
+            }],
+            generationConfig: {
+                temperature: 0.7,
+                maxOutputTokens: 100,
+            }
+        }),
         signal: suggestionAbortController.signal,
     })
         .then((response) => {
             // Check if the response is ok
             if (!response.ok) {
-                debugLog("Backend response not OK", {
+                debugLog("Gemini API response not OK", {
                     status: response.status,
                     requestId: requestId,
                 });
@@ -1124,18 +1126,18 @@ function requestSuggestion(context) {
             // Hide loading indicator
             hideLoadingIndicator();
 
-            // If there's a suggestion, show it
-            if (data.suggestion) {
-                currentSuggestion = data.suggestion;
-                debugLog("Received suggestion from backend", {
+            // Extract suggestion from Gemini response
+            if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
+                currentSuggestion = data.candidates[0].content.parts[0].text.trim();
+                debugLog("Received suggestion from Gemini API", {
                     suggestion:
-                        data.suggestion.substring(0, 50) +
-                        (data.suggestion.length > 50 ? "..." : ""),
+                        currentSuggestion.substring(0, 50) +
+                        (currentSuggestion.length > 50 ? "..." : ""),
                     requestId: requestId,
                 });
                 showSuggestion(currentSuggestion);
             } else {
-                debugLog("No suggestion received from backend", {
+                debugLog("No suggestion received from Gemini API", {
                     requestId: requestId,
                 });
             }
@@ -2753,24 +2755,12 @@ function showErrorIndicator() {
 }
 
 /**
- * Send telemetry data to the backend
+ * Send telemetry data (stub function)
  * @param {boolean} accepted - Whether the suggestion was accepted
  * @param {string} interactionType - How the suggestion was accepted (tab, click, etc.)
  */
 function sendTelemetry(accepted, interactionType = "tab") {
-    // Send the telemetry data
-    fetch(`${API_URL}/telemetry`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-            accepted,
-            interactionType,
-        }),
-    }).catch((error) => {
-        console.error("FlowWrite: Error sending telemetry:", error);
-    });
+    // Telemetry disabled - backend removed
 }
 
 /**

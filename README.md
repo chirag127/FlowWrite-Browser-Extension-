@@ -11,11 +11,9 @@ Visit our [FlowWrite Website](https://chirag127.github.io/FlowWrite-Browser-Exte
 ## ✨ Features
 
 -   **Real-time AI Suggestions**: Get intelligent writing suggestions as you type, triggered by a brief pause.
--   **Multi-Provider Support**: Choose from multiple AI providers including Google Gemini, OpenAI, Anthropic Claude, and more.
--   **Client-Side Architecture**: All AI requests are made directly from your browser - no backend server required.
 -   **Seamless Integration**: Accept suggestions instantly with the 'Tab' key or by clicking directly on them.
--   **Customizable Experience**: Configure suggestion delay, presentation style, AI provider, and site-specific settings.
--   **Privacy-Focused**: Your API keys are stored securely in your browser and never sent to any third-party servers.
+-   **Customizable Experience**: Configure suggestion delay, presentation style, and site-specific settings.
+-   **Privacy-Focused**: Your API key is stored securely in your browser and never on our servers. All requests go directly from your browser to Google Gemini API.
 -   **Site-Specific Control**: Enable or disable FlowWrite on specific websites.
 
 ## 🚀 Getting Started
@@ -23,21 +21,16 @@ Visit our [FlowWrite Website](https://chirag127.github.io/FlowWrite-Browser-Exte
 ### 📋 Prerequisites
 
 -   Google Chrome browser
--   An API key from your preferred AI provider:
-    -   [Google Gemini](https://aistudio.google.com/app/apikey)
-    -   [OpenAI](https://platform.openai.com/api-keys)
-    -   [Anthropic Claude](https://console.anthropic.com/settings/keys)
--   For development: Node.js and npm (only for icon generation)
+-   A Google Gemini API key (get one at [Google AI Studio](https://aistudio.google.com/app/apikey))
+-   For development: Node.js and npm
 
 ### 💻 Installation for Users
 
 1. Install the extension from the Chrome Web Store (link coming soon)
 2. Click on the FlowWrite icon in your browser toolbar
-3. Open the options page and configure your settings:
-   - Select your preferred AI provider
-   - Enter your API key
-   - Customize other preferences
-4. Start typing in any text field on the web!
+3. Open the options page and enter your Google Gemini API key
+4. Configure your preferences
+5. Start typing in any text field on the web!
 
 ### 🛠️ Installation for Developers
 
@@ -48,14 +41,19 @@ Visit our [FlowWrite Website](https://chirag127.github.io/FlowWrite-Browser-Exte
     cd FlowWrite-Browser-Extension-
     ```
 
-2. (Optional) Generate icons:
+2. Install dependencies:
 
     ```bash
     npm install
+    ```
+
+3. Generate icons (if needed):
+
+    ```bash
     npm run generate-icons
     ```
 
-3. Load the extension in Chrome:
+4. Load the extension in Chrome:
 
     - Open Chrome and navigate to `chrome://extensions/`
     - Enable "Developer mode" in the top-right corner
@@ -73,24 +71,21 @@ Visit our [FlowWrite Website](https://chirag127.github.io/FlowWrite-Browser-Exte
 
 ## ⚙️ Configuration Options
 
--   **AI Provider**: Select your preferred AI provider (Gemini, OpenAI, Claude, etc.)
--   **API Key**: Enter your API key for the selected provider
+-   **API Key**: Enter your Google Gemini API key
 -   **Enable/Disable**: Toggle FlowWrite on or off globally
 -   **Site Management**: Enable/disable FlowWrite for specific websites
 -   **Suggestion Delay**: Adjust how long to wait before showing suggestions (200ms-2000ms)
--   **Presentation Style**: Choose how suggestions appear (inline, popup, side panel, or dual)
--   **Page Context**: Enable/disable page content analysis for more relevant suggestions
+-   **Presentation Style**: Choose how suggestions appear (inline, popup, or side panel)
 
 ## 🔒 Privacy
 
 FlowWrite takes your privacy seriously:
 
--   Your API keys are stored securely in your browser using `chrome.storage.local`
--   Your API keys are never sent to any third-party servers
--   All AI requests are made directly from your browser to your chosen AI provider
--   Only the text you type is sent to the AI provider for generating suggestions
--   No user-identifiable data is collected or stored
--   No backend server - completely client-side architecture
+-   Your API key is stored securely in your browser using `chrome.storage.local`
+-   Your API key is never stored on any external servers
+-   Your text is sent directly from your browser to Google Gemini API for generating suggestions
+-   No intermediary servers process your data
+-   No user-identifiable data is collected
 
 ## 👨‍💻 Development
 
@@ -124,46 +119,21 @@ FlowWrite-Browser-Extension/
 
 ### Architecture
 
-FlowWrite uses a pure client-side architecture:
+FlowWrite is a pure client-side Chrome extension:
 
-1. **Content Script (`content.js`)**:
+1. **Frontend (Chrome Extension)**:
 
-    - Detects typing in text fields across web pages
-    - Makes direct API calls to configured AI provider
-    - Displays suggestions inline, in popup, or side panel
-    - Handles user interactions with suggestions
+    - **Content Script**: Detects typing in text fields, sends requests directly to Google Gemini API, and displays suggestions
+    - **Background Service Worker**: Handles communication and extension lifecycle
+    - **Options Page**: Allows users to configure the extension
+    - **Popup UI**: Provides quick access to common functions
 
-2. **Background Service Worker (`background.js`)**:
-
-    - Manages extension configuration storage
-    - Handles communication between components
-    - Manages extension lifecycle
-
-3. **Options Page**:
-
-    - Allows users to configure AI provider and API keys
-    - Customize presentation and behavior settings
-    - Manage site-specific permissions
-
-4. **Popup UI**:
-    - Provides quick access to enable/disable toggle
-    - Shows current status and quick settings
-
-### Multi-Provider Support
-
-FlowWrite supports multiple AI providers through a unified interface. Each provider's API is called directly from the browser with the user's API key. Supported providers include:
-
--   Google Gemini (gemini-1.5-flash, gemini-1.5-pro)
--   OpenAI (gpt-4, gpt-3.5-turbo)
--   Anthropic Claude (claude-3-5-sonnet, claude-3-opus)
--   And more...
+2. **Google Gemini API**: The extension communicates directly with Google's Gemini API to generate text suggestions
 
 ### Built With
 
 -   [Chrome Extension API](https://developer.chrome.com/docs/extensions/)
 -   [Google Gemini API](https://ai.google.dev/docs)
--   [OpenAI API](https://platform.openai.com/docs)
--   [Anthropic API](https://docs.anthropic.com/)
 -   [Sharp](https://sharp.pixelplumbing.com/) (for icon generation)
 
 ## 🙌 Contributing
@@ -183,5 +153,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## 👏 Acknowledgments
 
 -   Inspired by GitHub Copilot
--   Powered by multiple AI providers (Google Gemini, OpenAI, Anthropic, and more)
+-   Powered by Google Gemini AI
 -   Built with Chrome Extension APIs
