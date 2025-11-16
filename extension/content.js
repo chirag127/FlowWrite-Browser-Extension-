@@ -59,9 +59,10 @@ async function init() {
     // Inject CSS
     injectCSS();
 
-    // Load configuration from storage
+    // Load configuration from storage - check both new "config" and legacy keys
     chrome.storage.local.get(
         [
+            "config",
             "apiKey",
             "isEnabled",
             "disabledSites",
@@ -71,21 +72,39 @@ async function init() {
             "debugMode",
         ],
         (result) => {
-            if (result.apiKey) {
-                config.apiKey = result.apiKey;
+            // If new config structure exists, use it
+            if (result.config) {
+                config.apiKey =
+                    result.config.apiKeys?.gemini ||
+                    result.config.apiKeys?.cerebras ||
+                    result.config.apiKeys?.groq ||
+                    "";
+                config.isEnabled = result.config.isEnabled !== false;
+                config.disabledSites = result.config.disabledSites || "";
+                config.suggestionDelay = result.config.suggestionDelay || 500;
+                config.presentationMode =
+                    result.config.presentationMode || "inline";
+                config.enablePageContext =
+                    result.config.enablePageContext !== false;
+                config.debugMode = result.config.debugMode || false;
+            } else {
+                // Fallback to legacy individual keys
+                if (result.apiKey) {
+                    config.apiKey = result.apiKey;
+                }
+                if (result.isEnabled !== undefined)
+                    config.isEnabled = result.isEnabled;
+                if (result.disabledSites)
+                    config.disabledSites = result.disabledSites;
+                if (result.suggestionDelay)
+                    config.suggestionDelay = result.suggestionDelay;
+                if (result.presentationMode)
+                    config.presentationMode = result.presentationMode;
+                if (result.enablePageContext !== undefined)
+                    config.enablePageContext = result.enablePageContext;
+                if (result.debugMode !== undefined)
+                    config.debugMode = result.debugMode;
             }
-            if (result.isEnabled !== undefined)
-                config.isEnabled = result.isEnabled;
-            if (result.disabledSites)
-                config.disabledSites = result.disabledSites;
-            if (result.suggestionDelay)
-                config.suggestionDelay = result.suggestionDelay;
-            if (result.presentationMode)
-                config.presentationMode = result.presentationMode;
-            if (result.enablePageContext !== undefined)
-                config.enablePageContext = result.enablePageContext;
-            if (result.debugMode !== undefined)
-                config.debugMode = result.debugMode;
 
             // Check if the extension is enabled and the current site is not disabled
             if (isExtensionEnabledForSite()) {
@@ -101,6 +120,18 @@ async function init() {
     // Listen for configuration changes
     chrome.storage.onChanged.addListener((changes, namespace) => {
         if (namespace === "local") {
+            if (changes.config) {
+                const newConfig = changes.config.newValue;
+                config.isEnabled = newConfig.isEnabled !== false;
+                config.disabledSites = newConfig.disabledSites || "";
+                config.suggestionDelay = newConfig.suggestionDelay || 500;
+                config.presentationMode =
+                    newConfig.presentationMode || "inline";
+                config.enablePageContext =
+                    newConfig.enablePageContext !== false;
+                config.debugMode = newConfig.debugMode || false;
+                aiProviderManager.loadConfiguration();
+            }
             if (changes.apiKey) config.apiKey = changes.apiKey.newValue;
             if (changes.providers) {
                 aiProviderManager.loadConfiguration();
@@ -1045,19 +1076,11 @@ function getVisibleTextNodes() {
  * @param {string} context - The context to complete
  */
 async function requestSuggestion(context) {
-    if (!config.apiKey) {
-        console.error("FlowWrite: API key not set");
-        debugLog("API key not set, cannot request suggestion");
-        showPersistentErrorIndicator("API key not configured");
-        return;
-    }
-
     const requestId = ++currentRequestId;
 
     debugLog("Requesting suggestion with AI provider manager", {
         contextLength: context.length,
         requestId: requestId,
-        currentModel: aiProviderManager.getCurrentModel(),
     });
 
     removeSuggestion();
@@ -1085,22 +1108,25 @@ async function requestSuggestion(context) {
 
     for (let retryAttempt = 0; retryAttempt < maxRetries; retryAttempt++) {
         if (requestId !== currentRequestId) {
-            debugLog("Request invalidated during retry", { requestId, currentRequestId });
+            debugLog("Request invalidated during retry", {
+                requestId,
+                currentRequestId,
+            });
             return;
         }
 
         attemptCount++;
 
         try {
-            debugLog(`Suggestion request attempt ${attemptCount}/${maxRetries}`, {
-                requestId,
-                model: aiProviderManager.getCurrentModel(),
-                provider: aiProviderManager.currentProvider,
-            });
+            debugLog(
+                `Suggestion request attempt ${attemptCount}/${maxRetries}`,
+                {
+                    requestId,
+                }
+            );
 
-            const result = await aiProviderManager.generateSuggestion(
+            const suggestion = await aiProviderManager.generateSuggestion(
                 context,
-                config.apiKey,
                 pageContext,
                 suggestionAbortController.signal
             );
@@ -1115,14 +1141,12 @@ async function requestSuggestion(context) {
 
             hideLoadingIndicator();
 
-            if (result.suggestion) {
-                currentSuggestion = result.suggestion;
+            if (suggestion && suggestion.trim()) {
+                currentSuggestion = suggestion;
                 debugLog("Received suggestion from AI provider", {
                     suggestion:
-                        result.suggestion.substring(0, 50) +
-                        (result.suggestion.length > 50 ? "..." : ""),
-                    model: result.model,
-                    provider: result.provider,
+                        suggestion.substring(0, 50) +
+                        (suggestion.length > 50 ? "..." : ""),
                     requestId: requestId,
                     attempts: attemptCount,
                 });
@@ -1130,8 +1154,6 @@ async function requestSuggestion(context) {
                 return;
             } else {
                 debugLog("No suggestion received from AI provider", {
-                    model: result.model,
-                    provider: result.provider,
                     requestId: requestId,
                 });
                 return;
@@ -1139,8 +1161,15 @@ async function requestSuggestion(context) {
         } catch (error) {
             lastError = error;
 
-            if (error.message?.includes('timeout') || error.message?.includes('cancelled') || error.name === 'AbortError') {
-                debugLog("Request was cancelled or timed out", { requestId: requestId, attempt: attemptCount });
+            if (
+                error.message?.includes("timeout") ||
+                error.message?.includes("cancelled") ||
+                error.name === "AbortError"
+            ) {
+                debugLog("Request was cancelled or timed out", {
+                    requestId: requestId,
+                    attempt: attemptCount,
+                });
                 hideLoadingIndicator();
                 return;
             }
@@ -1149,7 +1178,10 @@ async function requestSuggestion(context) {
                 return;
             }
 
-            console.error(`FlowWrite: Error on attempt ${attemptCount}/${maxRetries}:`, error);
+            console.error(
+                `FlowWrite: Error on attempt ${attemptCount}/${maxRetries}:`,
+                error
+            );
             debugLog("Error requesting suggestion", {
                 error: error.message,
                 requestId: requestId,
@@ -1158,13 +1190,24 @@ async function requestSuggestion(context) {
             });
 
             if (retryAttempt < maxRetries - 1) {
-                const backoffDelay = Math.min(1000 * Math.pow(2, retryAttempt), 5000);
-                debugLog(`Retrying after ${backoffDelay}ms`, { requestId, nextAttempt: attemptCount + 1 });
-                
-                await new Promise(resolve => setTimeout(resolve, backoffDelay));
-                
+                const backoffDelay = Math.min(
+                    1000 * Math.pow(2, retryAttempt),
+                    5000
+                );
+                debugLog(`Retrying after ${backoffDelay}ms`, {
+                    requestId,
+                    nextAttempt: attemptCount + 1,
+                });
+
+                await new Promise((resolve) =>
+                    setTimeout(resolve, backoffDelay)
+                );
+
                 if (requestId !== currentRequestId) {
-                    debugLog("Request invalidated during backoff", { requestId, currentRequestId });
+                    debugLog("Request invalidated during backoff", {
+                        requestId,
+                        currentRequestId,
+                    });
                     return;
                 }
             }
@@ -1174,7 +1217,9 @@ async function requestSuggestion(context) {
     if (requestId === currentRequestId) {
         hideLoadingIndicator();
         const errorMessage = lastError?.message || "Unknown error";
-        showPersistentErrorIndicator(`Failed after ${attemptCount} attempts: ${errorMessage}`);
+        showPersistentErrorIndicator(
+            `Failed after ${attemptCount} attempts: ${errorMessage}`
+        );
         console.error("FlowWrite: All retry attempts exhausted", lastError);
     }
 
@@ -2817,7 +2862,9 @@ function showPersistentErrorIndicator(errorMessage) {
     // Add click handler to show full error message
     errorIndicator.title = errorMessage;
     errorIndicator.onclick = () => {
-        alert(`FlowWrite Error:\n\n${errorMessage}\n\nPlease check your API key and network connection.`);
+        alert(
+            `FlowWrite Error:\n\n${errorMessage}\n\nPlease check your API key and network connection.`
+        );
     };
 
     // Add the error indicator to the page
@@ -2840,7 +2887,7 @@ function showPersistentErrorIndicator(errorMessage) {
  * @param {string} interactionType - How the suggestion was accepted (tab, click, etc.)
  */
 function sendTelemetry(accepted, interactionType = "tab") {
-    chrome.storage.local.get(['telemetryEnabled'], (result) => {
+    chrome.storage.local.get(["telemetryEnabled"], (result) => {
         if (result.telemetryEnabled === false) {
             return;
         }
@@ -2849,11 +2896,13 @@ function sendTelemetry(accepted, interactionType = "tab") {
             accepted,
             interactionType,
             timestamp: Date.now(),
-            model: aiProviderManager ? aiProviderManager.getCurrentModel() : 'unknown',
-            provider: 'gemini'
+            model: aiProviderManager
+                ? aiProviderManager.getCurrentModel()
+                : "unknown",
+            provider: "gemini",
         };
 
-        chrome.storage.local.get(['telemetryLog'], (result) => {
+        chrome.storage.local.get(["telemetryLog"], (result) => {
             const log = result.telemetryLog || [];
             log.push(telemetryData);
 

@@ -10,414 +10,940 @@
     <body>
         <div class="container">
             <header>
-                <h1>FlowWrite Options</h1>
-                <p>Configure your AI-powered writing assistant</p>
+                <h1>⚡ FlowWrite - AI Writing Assistant</h1>
+                <p>
+                    Real-time AI suggestions powered by Groq, Cerebras, and
+                    Gemini
+                </p>
             </header>
 
+            <nav class="tabs">
+                <button class="tab-button active" data-tab="providers">
+                    🚀 AI Providers
+                </button>
+                <button class="tab-button" data-tab="general">
+                    ⚙️ General
+                </button>
+                <button class="tab-button" data-tab="performance">
+                    ⚡ Performance
+                </button>
+                <button class="tab-button" data-tab="context">
+                    🧠 Context
+                </button>
+                <button class="tab-button" data-tab="keyboard">
+                    ⌨️ Keyboard
+                </button>
+                <button class="tab-button" data-tab="advanced">
+                    🔧 Advanced
+                </button>
+                <button class="tab-button" data-tab="models">📊 Models</button>
+            </nav>
+
             <main>
-                <section class="option-section">
-                    <h2>AI Provider Configuration</h2>
-                    <p class="help-text" style="margin-left: 0; margin-bottom: 16px;">
-                        Configure one or more AI providers. The first enabled provider will be used for generating suggestions.
-                    </p>
-
-                    <!-- Google Gemini Provider -->
-                    <div class="provider-card">
-                        <div class="provider-header">
-                            <h3>Google Gemini</h3>
-                            <div class="toggle-switch">
-                                <input
-                                    type="checkbox"
-                                    id="geminiEnabled"
-                                    class="toggle-input"
-                                />
-                                <label for="geminiEnabled" class="toggle-label"></label>
-                            </div>
-                        </div>
-                        
-                        <div class="provider-content">
-                            <div class="option-row-compact">
-                                <label for="geminiApiKey">API Key:</label>
-                                <div class="input-group">
-                                    <input
-                                        type="password"
-                                        id="geminiApiKey"
-                                        placeholder="Enter your Gemini API key"
-                                    />
-                                    <button
-                                        class="icon-button toggle-key"
-                                        data-target="geminiApiKey"
-                                        title="Show/Hide API Key"
-                                    >
-                                        👁️
-                                    </button>
-                                    <button
-                                        class="icon-button validate-key"
-                                        data-provider="gemini"
-                                        title="Validate API Key"
-                                    >
-                                        ✓
-                                    </button>
-                                </div>
-                            </div>
-                            <div id="geminiStatus" class="status-message"></div>
-
-                            <div class="option-row-compact">
-                                <label for="geminiModel">Model:</label>
-                                <select id="geminiModel">
-                                    <optgroup label="Gemini 2.0 (Latest)">
-                                        <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash (Exp) 🚀⚡</option>
-                                        <option value="gemini-2.0-flash-thinking-exp-1219">Gemini 2.0 Flash Thinking (Exp) 🧠⚡</option>
-                                    </optgroup>
-                                    <optgroup label="Gemini 1.5 (Stable)">
-                                        <option value="gemini-1.5-flash">Gemini 1.5 Flash ⚡</option>
-                                        <option value="gemini-1.5-flash-8b">Gemini 1.5 Flash 8B ⚡💨</option>
-                                        <option value="gemini-1.5-pro">Gemini 1.5 Pro 🎯</option>
-                                        <option value="gemini-1.5-pro-002">Gemini 1.5 Pro 002 🎯</option>
-                                    </optgroup>
-                                    <optgroup label="Gemini 1.0 (Legacy)">
-                                        <option value="gemini-1.0-pro">Gemini 1.0 Pro 📚</option>
-                                    </optgroup>
-                                    <optgroup label="Experimental">
-                                        <option value="gemini-exp-1206">Gemini Exp 1206 🔬</option>
-                                        <option value="gemini-exp-1121">Gemini Exp 1121 🔬</option>
-                                    </optgroup>
-                                </select>
-                            </div>
-
-                            <div class="model-info" id="geminiModelInfo">
-                                <div class="capability-badges"></div>
-                                <div class="model-description"></div>
-                            </div>
-
-                            <p class="help-text" style="margin-left: 0;">
-                                Get your API key from
-                                <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio</a>
-                            </p>
-                        </div>
-                    </div>
-
-                    <!-- Cerebras Provider -->
-                    <div class="provider-card">
-                        <div class="provider-header">
-                            <h3>Cerebras</h3>
-                            <div class="toggle-switch">
-                                <input
-                                    type="checkbox"
-                                    id="cerebrasEnabled"
-                                    class="toggle-input"
-                                />
-                                <label for="cerebrasEnabled" class="toggle-label"></label>
-                            </div>
-                        </div>
-                        
-                        <div class="provider-content">
-                            <div class="option-row-compact">
-                                <label for="cerebrasApiKey">API Key:</label>
-                                <div class="input-group">
-                                    <input
-                                        type="password"
-                                        id="cerebrasApiKey"
-                                        placeholder="Enter your Cerebras API key"
-                                    />
-                                    <button
-                                        class="icon-button toggle-key"
-                                        data-target="cerebrasApiKey"
-                                        title="Show/Hide API Key"
-                                    >
-                                        👁️
-                                    </button>
-                                    <button
-                                        class="icon-button validate-key"
-                                        data-provider="cerebras"
-                                        title="Validate API Key"
-                                    >
-                                        ✓
-                                    </button>
-                                </div>
-                            </div>
-                            <div id="cerebrasStatus" class="status-message"></div>
-
-                            <div class="option-row-compact">
-                                <label for="cerebrasModel">Model:</label>
-                                <select id="cerebrasModel">
-                                    <optgroup label="Qwen Models">
-                                        <option value="qwen2.5-coder-32b">Qwen 2.5 Coder 32B 💻⚡</option>
-                                        <option value="qwq-32b-preview">QwQ 32B Preview 🔬</option>
-                                    </optgroup>
-                                    <optgroup label="Llama Models">
-                                        <option value="llama-3.3-70b">Llama 3.3 70B 🦙🎯</option>
-                                        <option value="llama3.1-8b">Llama 3.1 8B 🦙⚡</option>
-                                        <option value="llama3.1-70b">Llama 3.1 70B 🦙🎯</option>
-                                    </optgroup>
-                                    <optgroup label="DeepSeek Models">
-                                        <option value="deepseek-r1-distill-llama-70b">DeepSeek R1 Distill Llama 70B 🧠🎯</option>
-                                    </optgroup>
-                                </select>
-                            </div>
-
-                            <div class="model-info" id="cerebrasModelInfo">
-                                <div class="capability-badges"></div>
-                                <div class="model-description"></div>
-                            </div>
-
-                            <p class="help-text" style="margin-left: 0;">
-                                Get your API key from
-                                <a href="https://cloud.cerebras.ai/" target="_blank">Cerebras Cloud</a>
-                            </p>
-                        </div>
-                    </div>
-
-                    <!-- Groq Provider -->
-                    <div class="provider-card">
-                        <div class="provider-header">
-                            <h3>Groq</h3>
-                            <div class="toggle-switch">
-                                <input
-                                    type="checkbox"
-                                    id="groqEnabled"
-                                    class="toggle-input"
-                                />
-                                <label for="groqEnabled" class="toggle-label"></label>
-                            </div>
-                        </div>
-                        
-                        <div class="provider-content">
-                            <div class="option-row-compact">
-                                <label for="groqApiKey">API Key:</label>
-                                <div class="input-group">
-                                    <input
-                                        type="password"
-                                        id="groqApiKey"
-                                        placeholder="Enter your Groq API key"
-                                    />
-                                    <button
-                                        class="icon-button toggle-key"
-                                        data-target="groqApiKey"
-                                        title="Show/Hide API Key"
-                                    >
-                                        👁️
-                                    </button>
-                                    <button
-                                        class="icon-button validate-key"
-                                        data-provider="groq"
-                                        title="Validate API Key"
-                                    >
-                                        ✓
-                                    </button>
-                                </div>
-                            </div>
-                            <div id="groqStatus" class="status-message"></div>
-
-                            <div class="option-row-compact">
-                                <label for="groqModel">Model:</label>
-                                <select id="groqModel">
-                                    <optgroup label="Latest Models">
-                                        <option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile 🦙🎯⚡</option>
-                                        <option value="llama-3.3-70b-specdec">Llama 3.3 70B SpecDec 🦙🎯💨</option>
-                                    </optgroup>
-                                    <optgroup label="Llama 3.1 Models">
-                                        <option value="llama-3.1-70b-versatile">Llama 3.1 70B Versatile 🦙🎯</option>
-                                        <option value="llama-3.1-8b-instant">Llama 3.1 8B Instant 🦙⚡💨</option>
-                                    </optgroup>
-                                    <optgroup label="Mixtral Models">
-                                        <option value="mixtral-8x7b-32768">Mixtral 8x7B 🎯</option>
-                                    </optgroup>
-                                    <optgroup label="Gemma Models">
-                                        <option value="gemma2-9b-it">Gemma 2 9B ⚡</option>
-                                        <option value="gemma-7b-it">Gemma 7B ⚡</option>
-                                    </optgroup>
-                                    <optgroup label="DeepSeek Models">
-                                        <option value="deepseek-r1-distill-llama-70b">DeepSeek R1 Distill Llama 70B 🧠🎯</option>
-                                    </optgroup>
-                                </select>
-                            </div>
-
-                            <div class="model-info" id="groqModelInfo">
-                                <div class="capability-badges"></div>
-                                <div class="model-description"></div>
-                            </div>
-
-                            <p class="help-text" style="margin-left: 0;">
-                                Get your API key from
-                                <a href="https://console.groq.com/keys" target="_blank">Groq Console</a>
-                            </p>
-                        </div>
-                    </div>
-
-                    <!-- Fallback Order Visualization -->
-                    <div class="fallback-section">
-                        <h3>Fallback Order</h3>
-                        <p class="help-text" style="margin-left: 0; margin-bottom: 12px;">
-                            When a provider fails, FlowWrite will automatically try the next enabled provider in this order:
-                        </p>
-                        <div id="fallbackOrder" class="fallback-order">
-                            <div class="fallback-empty">No providers enabled. Enable at least one provider above.</div>
-                        </div>
-                    </div>
-                </section>
-
-                <section class="option-section">
-                    <h2>General Settings</h2>
-                    <div class="option-row">
-                        <label for="isEnabled">Enable FlowWrite:</label>
-                        <div class="toggle-switch">
-                            <input
-                                type="checkbox"
-                                id="isEnabled"
-                                class="toggle-input"
-                                checked
-                            />
-                            <label for="isEnabled" class="toggle-label"></label>
-                        </div>
-                    </div>
-
-                    <div class="option-row">
-                        <label for="suggestionDelay"
-                            >Suggestion Delay (ms):</label
-                        >
-                        <div class="slider-container">
-                            <input
-                                type="range"
-                                id="suggestionDelay"
-                                min="200"
-                                max="2000"
-                                step="100"
-                                value="500"
-                            />
-                            <span id="suggestionDelayValue">500 ms</span>
-                        </div>
-                    </div>
-
-                    <div class="option-row">
-                        <label for="presentationMode">Presentation Mode:</label>
-                        <select id="presentationMode">
-                            <option value="inline">Inline (Default)</option>
-                            <option value="popup">Popup</option>
-                            <option value="sidepanel">Side Panel</option>
-                            <option value="dual">Dual (Inline + Popup)</option>
-                        </select>
-                    </div>
-
-                    <div class="option-row">
-                        <label for="enablePageContext"
-                            >Enable Page Context:</label
-                        >
-                        <div class="toggle-switch">
-                            <input
-                                type="checkbox"
-                                id="enablePageContext"
-                                class="toggle-input"
-                                checked
-                            />
-                            <label
-                                for="enablePageContext"
-                                class="toggle-label"
-                            ></label>
-                        </div>
-                    </div>
-                    <p class="help-text">
-                        When enabled, FlowWrite will analyze the page content to
-                        provide more relevant suggestions.
-                        <br />This may improve suggestion quality but uses more
-                        resources.
-                    </p>
-
-                    <div class="option-row">
-                        <label for="debugMode">Debug Mode:</label>
-                        <div class="toggle-switch">
-                            <input
-                                type="checkbox"
-                                id="debugMode"
-                                class="toggle-input"
-                            />
-                            <label for="debugMode" class="toggle-label"></label>
-                        </div>
-                    </div>
-                    <p class="help-text">
-                        Enable debug mode for troubleshooting. Press Alt+Shift+D
-                        to show debug overlay.
-                    </p>
-                </section>
-
-                <section class="option-section">
-                    <h2>Site Settings</h2>
-                    <div class="option-row">
-                        <label for="disabledSites">Disabled Sites:</label>
-                        <textarea
-                            id="disabledSites"
-                            placeholder="Enter domain names to disable FlowWrite on (one per line)&#10;Example:&#10;example.com&#10;mail.google.com"
-                        ></textarea>
-                    </div>
-                    <p class="help-text">
-                        Enter one domain per line. FlowWrite will be disabled on
-                        these sites.
-                    </p>
-                </section>
-
-                <section class="option-section">
-                    <h2>How to Use</h2>
-                    <div class="usage-instructions">
+                <!-- ===== PROVIDERS TAB ===== -->
+                <section class="tab-content active" id="tab-providers">
+                    <div class="section-header">
+                        <h2>AI Provider Configuration</h2>
                         <p>
-                            FlowWrite provides AI-powered writing suggestions as
-                            you type:
+                            FlowWrite automatically rotates through AI providers
+                            in this priority order: <strong>Groq</strong> →
+                            <strong>Cerebras</strong> → <strong>Gemini</strong>
+                        </p>
+                    </div>
+
+                    <div class="providers-grid">
+                        <!-- Groq Card -->
+                        <div class="provider-card priority-1">
+                            <div class="priority-badge">
+                                🚀 Priority #1 (Fastest)
+                            </div>
+                            <h3>Groq</h3>
+                            <div class="provider-controls">
+                                <label class="toggle-switch">
+                                    <input
+                                        type="checkbox"
+                                        id="groqEnabled"
+                                        class="toggle-input"
+                                    />
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <span class="status-text">Enable Groq</span>
+                            </div>
+
+                            <div class="provider-content">
+                                <div class="form-group">
+                                    <label for="groqApiKey">API Key</label>
+                                    <div class="input-wrapper">
+                                        <input
+                                            type="password"
+                                            id="groqApiKey"
+                                            placeholder="Enter your Groq API key"
+                                        />
+                                        <button
+                                            class="toggle-visibility"
+                                            data-target="groqApiKey"
+                                            title="Show/Hide"
+                                        >
+                                            👁️
+                                        </button>
+                                    </div>
+                                    <div
+                                        id="groqStatus"
+                                        class="status-badge"
+                                    ></div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="groqModel">Model</label>
+                                    <select id="groqModel">
+                                        <option value="llama-3.3-70b-versatile">
+                                            Llama 3.3 70B Versatile 🦙🎯
+                                        </option>
+                                        <option value="llama-3.3-70b-specdec">
+                                            Llama 3.3 70B SpecDec 💨
+                                        </option>
+                                        <option value="mixtral-8x7b-32768">
+                                            Mixtral 8x7B 🎯
+                                        </option>
+                                        <option value="llama-3.1-70b-versatile">
+                                            Llama 3.1 70B 🦙
+                                        </option>
+                                        <option value="llama-3.1-8b-instant">
+                                            Llama 3.1 8B ⚡
+                                        </option>
+                                        <option value="gemma2-9b-it">
+                                            Gemma 2 9B ⚡
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <a
+                                    href="https://console.groq.com/keys"
+                                    target="_blank"
+                                    class="help-link"
+                                    >Get API Key →</a
+                                >
+                            </div>
+                        </div>
+
+                        <!-- Cerebras Card -->
+                        <div class="provider-card priority-2">
+                            <div class="priority-badge">
+                                ⚡ Priority #2 (Fast)
+                            </div>
+                            <h3>Cerebras</h3>
+                            <div class="provider-controls">
+                                <label class="toggle-switch">
+                                    <input
+                                        type="checkbox"
+                                        id="cerebrasEnabled"
+                                        class="toggle-input"
+                                    />
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <span class="status-text">Enable Cerebras</span>
+                            </div>
+
+                            <div class="provider-content">
+                                <div class="form-group">
+                                    <label for="cerebrasApiKey">API Key</label>
+                                    <div class="input-wrapper">
+                                        <input
+                                            type="password"
+                                            id="cerebrasApiKey"
+                                            placeholder="Enter your Cerebras API key"
+                                        />
+                                        <button
+                                            class="toggle-visibility"
+                                            data-target="cerebrasApiKey"
+                                            title="Show/Hide"
+                                        >
+                                            👁️
+                                        </button>
+                                    </div>
+                                    <div
+                                        id="cerebrasStatus"
+                                        class="status-badge"
+                                    ></div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="cerebrasModel">Model</label>
+                                    <select id="cerebrasModel">
+                                        <option value="qwen2.5-coder-32b">
+                                            Qwen 2.5 Coder 32B 💻
+                                        </option>
+                                        <option value="llama-3.3-70b">
+                                            Llama 3.3 70B 🦙
+                                        </option>
+                                        <option value="qwq-32b-preview">
+                                            QwQ 32B Preview 🔬
+                                        </option>
+                                        <option
+                                            value="deepseek-r1-distill-llama-70b"
+                                        >
+                                            DeepSeek R1 70B 🧠
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <a
+                                    href="https://cloud.cerebras.ai"
+                                    target="_blank"
+                                    class="help-link"
+                                    >Get API Key →</a
+                                >
+                            </div>
+                        </div>
+
+                        <!-- Gemini Card -->
+                        <div class="provider-card priority-3">
+                            <div class="priority-badge">
+                                ✨ Priority #3 (Fallback)
+                            </div>
+                            <h3>Google Gemini</h3>
+                            <div class="provider-controls">
+                                <label class="toggle-switch">
+                                    <input
+                                        type="checkbox"
+                                        id="geminiEnabled"
+                                        class="toggle-input"
+                                    />
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <span class="status-text">Enable Gemini</span>
+                            </div>
+
+                            <div class="provider-content">
+                                <div class="form-group">
+                                    <label for="geminiApiKey">API Key</label>
+                                    <div class="input-wrapper">
+                                        <input
+                                            type="password"
+                                            id="geminiApiKey"
+                                            placeholder="Enter your Gemini API key"
+                                        />
+                                        <button
+                                            class="toggle-visibility"
+                                            data-target="geminiApiKey"
+                                            title="Show/Hide"
+                                        >
+                                            👁️
+                                        </button>
+                                    </div>
+                                    <div
+                                        id="geminiStatus"
+                                        class="status-badge"
+                                    ></div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="geminiModel">Model</label>
+                                    <select id="geminiModel">
+                                        <option value="gemini-2.0-flash-exp">
+                                            Gemini 2.0 Flash (Latest) 🚀
+                                        </option>
+                                        <option value="gemini-1.5-pro">
+                                            Gemini 1.5 Pro 🎯
+                                        </option>
+                                        <option value="gemini-1.5-flash">
+                                            Gemini 1.5 Flash ⚡
+                                        </option>
+                                        <option value="gemini-1.5-flash-8b">
+                                            Gemini 1.5 Flash 8B 💨
+                                        </option>
+                                        <option value="gemini-exp-1206">
+                                            Gemini Exp 1206 🔬
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <a
+                                    href="https://aistudio.google.com/app/apikey"
+                                    target="_blank"
+                                    class="help-link"
+                                    >Get API Key →</a
+                                >
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="info-box fallback-info">
+                        <h3>🔄 Automatic Fallback System</h3>
+                        <p>
+                            When one provider fails, reaches rate limits, or
+                            lacks an API key, FlowWrite automatically switches
+                            to the next available provider in the priority
+                            order.
+                        </p>
+                        <div id="fallbackStatus" class="fallback-status"></div>
+                    </div>
+                </section>
+
+                <!-- ===== GENERAL SETTINGS TAB ===== -->
+                <section class="tab-content" id="tab-general">
+                    <div class="section-header">
+                        <h2>General Settings</h2>
+                        <p>Configure core FlowWrite behavior</p>
+                    </div>
+
+                    <div class="settings-box">
+                        <div class="setting-group">
+                            <div class="setting-header">
+                                <h3>🌍 Global Enable/Disable</h3>
+                                <label class="toggle-switch">
+                                    <input
+                                        type="checkbox"
+                                        id="isEnabled"
+                                        checked
+                                    />
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <p class="setting-description">
+                                Temporarily disable FlowWrite on all websites
+                                without removing configuration
+                            </p>
+                        </div>
+
+                        <div class="divider"></div>
+
+                        <div class="setting-group">
+                            <h3>🎨 Presentation Mode</h3>
+                            <p class="setting-description">
+                                Choose how FlowWrite displays suggestions
+                            </p>
+                            <select
+                                id="presentationMode"
+                                class="setting-select"
+                            >
+                                <option value="inline">
+                                    Inline (Default) - Suggestions appear in the
+                                    text field
+                                </option>
+                                <option value="popup">
+                                    Popup - Suggestions appear below the field
+                                </option>
+                                <option value="sidepanel">
+                                    Side Panel - Suggestions in a dedicated side
+                                    panel
+                                </option>
+                                <option value="dual">
+                                    Dual - Both inline and popup simultaneously
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="divider"></div>
+
+                        <div class="setting-group">
+                            <h3>⌚ Suggestion Timing</h3>
+                            <p class="setting-description">
+                                Time to wait after you stop typing before
+                                showing a suggestion
+                            </p>
+                            <div class="slider-container">
+                                <input
+                                    type="range"
+                                    id="suggestionDelay"
+                                    min="100"
+                                    max="2000"
+                                    step="50"
+                                    value="500"
+                                    class="slider"
+                                />
+                                <span
+                                    id="suggestionDelayValue"
+                                    class="slider-value"
+                                    >500 ms</span
+                                >
+                            </div>
+                            <div class="slider-labels">
+                                <span>100 ms (Instant)</span>
+                                <span>2000 ms (Slow)</span>
+                            </div>
+                        </div>
+
+                        <div class="divider"></div>
+
+                        <div class="setting-group">
+                            <div class="setting-header">
+                                <h3>🔒 Keyboard Shortcut Override</h3>
+                                <label class="toggle-switch">
+                                    <input
+                                        type="checkbox"
+                                        id="overrideKeyboard"
+                                    />
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <p class="setting-description">
+                                Override website Tab key behavior to accept
+                                suggestions (use with caution)
+                            </p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ===== PERFORMANCE TAB ===== -->
+                <section class="tab-content" id="tab-performance">
+                    <div class="section-header">
+                        <h2>Performance Settings</h2>
+                        <p>Optimize suggestion generation and response times</p>
+                    </div>
+
+                    <div class="settings-box">
+                        <div class="setting-group">
+                            <div class="setting-header">
+                                <h3>⚡ Suggestion Length</h3>
+                            </div>
+                            <p class="setting-description">
+                                Maximum length of generated suggestions
+                            </p>
+                            <select
+                                id="suggestionLength"
+                                class="setting-select"
+                            >
+                                <option value="short">
+                                    Short (10-20 words)
+                                </option>
+                                <option value="medium" selected>
+                                    Medium (20-40 words)
+                                </option>
+                                <option value="long">Long (40-60 words)</option>
+                                <option value="xlarge">
+                                    Extra Large (60+ words)
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="divider"></div>
+
+                        <div class="setting-group">
+                            <div class="setting-header">
+                                <h3>🔄 Request Timeout</h3>
+                            </div>
+                            <p class="setting-description">
+                                Maximum time to wait for API response
+                            </p>
+                            <div class="slider-container">
+                                <input
+                                    type="range"
+                                    id="requestTimeout"
+                                    min="3000"
+                                    max="30000"
+                                    step="1000"
+                                    value="8000"
+                                    class="slider"
+                                />
+                                <span
+                                    id="requestTimeoutValue"
+                                    class="slider-value"
+                                    >8 seconds</span
+                                >
+                            </div>
+                        </div>
+
+                        <div class="divider"></div>
+
+                        <div class="setting-group">
+                            <div class="setting-header">
+                                <h3>🎯 Quality vs Speed</h3>
+                            </div>
+                            <p class="setting-description">
+                                Balance between suggestion quality and response
+                                speed
+                            </p>
+                            <select id="qualityMode" class="setting-select">
+                                <option value="speed">
+                                    Speed (Fast response, basic quality)
+                                </option>
+                                <option value="balanced" selected>
+                                    Balanced (Good speed and quality)
+                                </option>
+                                <option value="quality">
+                                    Quality (Slower but better suggestions)
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="divider"></div>
+
+                        <div class="setting-group">
+                            <div class="setting-header">
+                                <h3>📊 Batch Processing</h3>
+                                <label class="toggle-switch">
+                                    <input
+                                        type="checkbox"
+                                        id="batchProcessing"
+                                        checked
+                                    />
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <p class="setting-description">
+                                Process multiple suggestions efficiently in
+                                batches
+                            </p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ===== CONTEXT TAB ===== -->
+                <section class="tab-content" id="tab-context">
+                    <div class="section-header">
+                        <h2>Context & Analysis</h2>
+                        <p>Control how FlowWrite analyzes page context</p>
+                    </div>
+
+                    <div class="settings-box">
+                        <div class="setting-group">
+                            <div class="setting-header">
+                                <h3>🧠 Enable Page Context Analysis</h3>
+                                <label class="toggle-switch">
+                                    <input
+                                        type="checkbox"
+                                        id="enablePageContext"
+                                        checked
+                                    />
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <p class="setting-description">
+                                Analyze surrounding page content to improve
+                                suggestion relevance (uses more tokens)
+                            </p>
+                        </div>
+
+                        <div class="divider"></div>
+
+                        <div class="setting-group">
+                            <h3>📖 Context Window Size</h3>
+                            <p class="setting-description">
+                                Amount of surrounding text to analyze for
+                                context
+                            </p>
+                            <select id="contextWindow" class="setting-select">
+                                <option value="small">
+                                    Small (Previous sentence only)
+                                </option>
+                                <option value="medium" selected>
+                                    Medium (Previous paragraph)
+                                </option>
+                                <option value="large">
+                                    Large (Multiple paragraphs)
+                                </option>
+                                <option value="full">Full (Entire page)</option>
+                            </select>
+                        </div>
+
+                        <div class="divider"></div>
+
+                        <div class="setting-group">
+                            <div class="setting-header">
+                                <h3>🔤 Include Page Title</h3>
+                                <label class="toggle-switch">
+                                    <input
+                                        type="checkbox"
+                                        id="includePageTitle"
+                                        checked
+                                    />
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <p class="setting-description">
+                                Use page title and headings to understand
+                                context
+                            </p>
+                        </div>
+
+                        <div class="divider"></div>
+
+                        <div class="setting-group">
+                            <div class="setting-header">
+                                <h3>🏷️ Include Meta Information</h3>
+                                <label class="toggle-switch">
+                                    <input
+                                        type="checkbox"
+                                        id="includeMetaInfo"
+                                        checked
+                                    />
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <p class="setting-description">
+                                Include page metadata (type, language,
+                                structure)
+                            </p>
+                        </div>
+
+                        <div class="divider"></div>
+
+                        <div class="setting-group">
+                            <h3>💾 Context Cache Size</h3>
+                            <p class="setting-description">
+                                Store analyzed context for faster subsequent
+                                requests
+                            </p>
+                            <select id="cacheSize" class="setting-select">
+                                <option value="small">Small (5 entries)</option>
+                                <option value="medium" selected>
+                                    Medium (10 entries)
+                                </option>
+                                <option value="large">
+                                    Large (25 entries)
+                                </option>
+                                <option value="disabled">Disabled</option>
+                            </select>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ===== KEYBOARD SETTINGS TAB ===== -->
+                <section class="tab-content" id="tab-keyboard">
+                    <div class="section-header">
+                        <h2>Keyboard Shortcuts</h2>
+                        <p>Customize how you interact with suggestions</p>
+                    </div>
+
+                    <div class="shortcuts-container">
+                        <div class="shortcut-card">
+                            <div class="shortcut-action">
+                                ✅ Accept Full Suggestion
+                            </div>
+                            <div class="shortcut-keys">
+                                <kbd>Tab</kbd>
+                            </div>
+                            <p class="shortcut-description">
+                                Accept the entire suggestion and insert it into
+                                the text field
+                            </p>
+                        </div>
+
+                        <div class="shortcut-card">
+                            <div class="shortcut-action">
+                                ➡️ Accept Next Word
+                            </div>
+                            <div class="shortcut-keys">
+                                <kbd>Ctrl</kbd> + <kbd>→</kbd>
+                            </div>
+                            <p class="shortcut-description">
+                                Accept one word at a time from the suggestion
+                                (press repeatedly)
+                            </p>
+                        </div>
+
+                        <div class="shortcut-card">
+                            <div class="shortcut-action">
+                                ❌ Dismiss Suggestion
+                            </div>
+                            <div class="shortcut-keys">
+                                <kbd>Esc</kbd>
+                            </div>
+                            <p class="shortcut-description">
+                                Close the current suggestion without accepting
+                                it
+                            </p>
+                        </div>
+
+                        <div class="shortcut-card">
+                            <div class="shortcut-action">
+                                🖱️ Click to Accept
+                            </div>
+                            <div class="shortcut-keys">Click on suggestion</div>
+                            <p class="shortcut-description">
+                                Click directly on any suggestion text to accept
+                                it
+                            </p>
+                        </div>
+
+                        <div class="shortcut-card">
+                            <div class="shortcut-action">🐛 Debug Toggle</div>
+                            <div class="shortcut-keys">
+                                <kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>D</kbd>
+                            </div>
+                            <p class="shortcut-description">
+                                Show/hide the debug information overlay
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="info-box">
+                        <h3>💡 Tip: Using Click-to-Accept</h3>
+                        <p>
+                            The click-to-accept feature is especially useful on
+                            websites where Tab key is already assigned to other
+                            actions (like navigation).
+                        </p>
+                    </div>
+
+                    <div class="settings-box" style="margin-top: 24px">
+                        <div class="setting-group">
+                            <div class="setting-header">
+                                <h3>⚙️ Custom Shortcuts</h3>
+                                <p
+                                    style="
+                                        font-size: 12px;
+                                        color: var(--text-secondary);
+                                    "
+                                >
+                                    Coming in a future update
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ===== ADVANCED TAB ===== -->
+                <section class="tab-content" id="tab-advanced">
+                    <div class="section-header">
+                        <h2>Advanced Settings</h2>
+                        <p>Developer and troubleshooting options</p>
+                    </div>
+
+                    <div class="settings-box">
+                        <div class="setting-group">
+                            <div class="setting-header">
+                                <h3>🐛 Debug Mode</h3>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="debugMode" />
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <p class="setting-description">
+                                Enable detailed logging in console (Press
+                                Alt+Shift+D to toggle overlay)
+                            </p>
+                        </div>
+
+                        <div class="divider"></div>
+
+                        <div class="setting-group">
+                            <h3>📝 Disabled Websites</h3>
+                            <p class="setting-description">
+                                Enter domain names where FlowWrite should be
+                                disabled (one per line)
+                            </p>
+                            <textarea
+                                id="disabledSites"
+                                class="setting-textarea"
+                                placeholder="example.com&#10;mail.google.com&#10;docs.google.com"
+                            ></textarea>
+                            <p class="help-text">
+                                Examples: example.com, mail.google.com,
+                                docs.google.com
+                            </p>
+                        </div>
+
+                        <div class="divider"></div>
+
+                        <div class="setting-group">
+                            <h3>🏷️ Custom User Agent</h3>
+                            <p class="setting-description">
+                                Identify API requests with a custom header
+                                (optional)
+                            </p>
+                            <input
+                                type="text"
+                                id="customUserAgent"
+                                class="setting-input"
+                                placeholder="MyFlowWrite/1.0"
+                            />
+                        </div>
+
+                        <div class="divider"></div>
+
+                        <div class="setting-group">
+                            <div class="setting-header">
+                                <h3>📊 Usage Statistics</h3>
+                                <label class="toggle-switch">
+                                    <input
+                                        type="checkbox"
+                                        id="enableStatistics"
+                                        checked
+                                    />
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <p class="setting-description">
+                                Track anonymous usage statistics (stored
+                                locally, never shared)
+                            </p>
+                            <button id="clearStatistics" class="btn-secondary">
+                                Clear Statistics
+                            </button>
+                        </div>
+
+                        <div class="divider"></div>
+
+                        <div class="setting-group">
+                            <div class="setting-header">
+                                <h3>⚠️ Clear Cache</h3>
+                            </div>
+                            <p class="setting-description">
+                                Remove all cached suggestions and context data
+                            </p>
+                            <button id="clearCache" class="btn-secondary">
+                                Clear Cache
+                            </button>
+                        </div>
+
+                        <div class="divider"></div>
+
+                        <div class="setting-group">
+                            <div class="setting-header">
+                                <h3>🔐 Clear All Data</h3>
+                            </div>
+                            <p
+                                class="setting-description"
+                                style="color: var(--error-color)"
+                            >
+                                ⚠️ Warning: This will delete all settings and
+                                cannot be undone
+                            </p>
+                            <button id="resetAll" class="btn-danger">
+                                Reset All Settings
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ===== MODELS INFO TAB ===== -->
+                <section class="tab-content" id="tab-models">
+                    <div class="section-header">
+                        <h2>Available Models Reference</h2>
+                        <p>
+                            Detailed information about all supported AI models
+                        </p>
+                    </div>
+
+                    <div class="models-grid">
+                        <div class="model-category">
+                            <h3>🚀 Groq Models (Very Fast)</h3>
+                            <div class="model-list">
+                                <div class="model-item">
+                                    <span class="model-name"
+                                        >Llama 3.3 70B Versatile</span
+                                    >
+                                    <span class="model-meta"
+                                        >70k tokens/min | General Purpose</span
+                                    >
+                                </div>
+                                <div class="model-item">
+                                    <span class="model-name">Mixtral 8x7B</span>
+                                    <span class="model-meta"
+                                        >25k tokens/min | Balanced</span
+                                    >
+                                </div>
+                                <div class="model-item">
+                                    <span class="model-name"
+                                        >Llama 3.1 8B Instant</span
+                                    >
+                                    <span class="model-meta"
+                                        >15k tokens/min | Lightweight</span
+                                    >
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="model-category">
+                            <h3>⚡ Cerebras Models (Fast)</h3>
+                            <div class="model-list">
+                                <div class="model-item">
+                                    <span class="model-name"
+                                        >Qwen 2.5 Coder 32B</span
+                                    >
+                                    <span class="model-meta"
+                                        >150k tokens/min | Code Expert</span
+                                    >
+                                </div>
+                                <div class="model-item">
+                                    <span class="model-name"
+                                        >Llama 3.3 70B</span
+                                    >
+                                    <span class="model-meta"
+                                        >64k tokens/min | General Purpose</span
+                                    >
+                                </div>
+                                <div class="model-item">
+                                    <span class="model-name"
+                                        >DeepSeek R1 70B</span
+                                    >
+                                    <span class="model-meta"
+                                        >50k tokens/min | Reasoning</span
+                                    >
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="model-category">
+                            <h3>✨ Gemini Models (Reliable Fallback)</h3>
+                            <div class="model-list">
+                                <div class="model-item">
+                                    <span class="model-name"
+                                        >Gemini 2.0 Flash</span
+                                    >
+                                    <span class="model-meta"
+                                        >1M tokens/min | Latest & Fastest</span
+                                    >
+                                </div>
+                                <div class="model-item">
+                                    <span class="model-name"
+                                        >Gemini 1.5 Pro</span
+                                    >
+                                    <span class="model-meta"
+                                        >2M tokens/min | Most Capable</span
+                                    >
+                                </div>
+                                <div class="model-item">
+                                    <span class="model-name"
+                                        >Gemini 1.5 Flash</span
+                                    >
+                                    <span class="model-meta"
+                                        >1M tokens/min | Lightweight</span
+                                    >
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="info-box">
+                        <h3>ℹ️ About Model Selection</h3>
+                        <p>
+                            FlowWrite automatically selects the best available
+                            model based on:
                         </p>
                         <ul>
-                            <li>
-                                <strong>Tab key:</strong> Accept the entire
-                                suggestion
-                            </li>
-                            <li>
-                                <strong>Ctrl + Right Arrow:</strong> Accept only
-                                the next word of the suggestion (press and hold
-                                Ctrl, then press Right Arrow). Press repeatedly to
-                                accept multiple words one by one.
-                            </li>
-                            <li>
-                                <strong>Click:</strong> Click directly on a
-                                suggestion to accept it
-                            </li>
-                            <li>
-                                <strong>Esc key:</strong> Dismiss the current
-                                suggestion
-                            </li>
+                            <li>✓ API key availability</li>
+                            <li>✓ Current rate limits</li>
+                            <li>✓ Provider speed ranking</li>
+                            <li>✓ Recent failure history</li>
                         </ul>
-                        <p class="help-text">
-                            The click-to-accept feature is especially useful in
-                            web applications where the Tab key is already
-                            assigned to other actions.
-                        </p>
-                        <p class="help-text">
-                            Try the new "Dual" presentation mode to see
-                            suggestions both inline and in a popup
-                            simultaneously!
-                        </p>
                     </div>
-                </section>
-
-                <section class="option-section actions">
-                    <button id="saveOptions" class="primary-button">
-                        Save Settings
-                    </button>
-                    <button id="clearOptions" class="secondary-button">
-                        Reset to Defaults
-                    </button>
                 </section>
             </main>
 
             <footer>
-                <p>
-                    FlowWrite v1.0.3 |
+                <div class="footer-actions">
+                    <button id="saveButton" class="btn-primary">
+                        💾 Save Settings
+                    </button>
+                    <button id="resetButton" class="btn-secondary">
+                        ↻ Reset to Defaults
+                    </button>
+                </div>
+                <span id="statusMessage" class="status-footer"></span>
+                <p class="footer-text">
+                    FlowWrite v2.0.0 |
                     <a
                         href="https://github.com/chirag127/FlowWrite-Browser-Extension-"
                         target="_blank"
                         >GitHub</a
                     >
+                    | <a href="#" target="_blank">Privacy Policy</a>
                 </p>
             </footer>
         </div>
-
-        <div id="toast" class="toast"></div>
 
         <script src="options.js"></script>
     </body>

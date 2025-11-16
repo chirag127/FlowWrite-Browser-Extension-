@@ -2,167 +2,488 @@
  * AI Provider Service Manager
  *
  * Manages multiple AI provider services with:
- * - Client-side API calls directly to provider endpoints
- * - Model rotation for fallback handling
- * - Rate limiting and error recovery
- * - Support for multiple providers (Gemini, Cerebras, Groq, etc.)
- * - Backward compatibility with legacy API key configuration
+ * - Client-side REST API calls directly to provider endpoints
+ * - Comprehensive model registry sorted by speed/capability
+ * - Rate limiting and error recovery with exponential backoff
+ * - Support for Gemini, Cerebras, and Groq
+ * - Intelligent model rotation with automatic fallback
  */
 
 class AIProviderManager {
     constructor() {
-        this.providers = {
-            gemini: {
-                name: 'Google Gemini',
-                models: [
-                    'gemini-2.0-flash-exp',
-                    'gemini-2.0-flash-thinking-exp-1219',
-                    'gemini-exp-1206'
-                ],
-                currentModelIndex: 0,
-                endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent',
-                failureCount: 0,
-                lastFailureTime: null,
-                enabled: false,
-                apiKey: null
+        // Models sorted by SPEED (fastest first across all providers)
+        // Order: Groq (fastest) → Cerebras → Gemini
+        this.models = [
+            // ========== GROQ (Fastest) ==========
+            {
+                provider: "groq",
+                id: "groq/compound",
+                name: "Groq Compound",
+                speed: "very-fast",
+                contextSize: 8192,
+                tokensPerMinute: 70000,
+                requestsPerDay: 250,
+                requestsPerMinute: 30,
+                modelSize: "xlarge",
+                endpoint: "https://api.groq.com/openai/v1/chat/completions",
             },
-            cerebras: {
-                name: 'Cerebras',
-                models: [
-                    'llama3.1-8b',
-                    'llama3.1-70b'
-                ],
-                currentModelIndex: 0,
-                endpoint: 'https://api.cerebras.ai/v1/chat/completions',
-                failureCount: 0,
-                lastFailureTime: null,
-                enabled: false,
-                apiKey: null
+            {
+                provider: "groq",
+                id: "groq/compound-mini",
+                name: "Groq Compound Mini",
+                speed: "very-fast",
+                contextSize: 8192,
+                tokensPerMinute: 70000,
+                requestsPerDay: 250,
+                requestsPerMinute: 30,
+                modelSize: "large",
+                endpoint: "https://api.groq.com/openai/v1/chat/completions",
             },
-            groq: {
-                name: 'Groq',
-                models: [
-                    'llama-3.3-70b-versatile',
-                    'llama-3.1-70b-versatile',
-                    'mixtral-8x7b-32768'
-                ],
-                currentModelIndex: 0,
-                endpoint: 'https://api.groq.com/openai/v1/chat/completions',
-                failureCount: 0,
-                lastFailureTime: null,
-                enabled: false,
-                apiKey: null
-            }
-        };
+            {
+                provider: "groq",
+                id: "llama-3.3-70b-versatile",
+                name: "Llama 3.3 70B (Groq)",
+                speed: "very-fast",
+                contextSize: 8192,
+                tokensPerMinute: 12000,
+                requestsPerDay: 1000,
+                requestsPerMinute: 30,
+                modelSize: "xlarge",
+                endpoint: "https://api.groq.com/openai/v1/chat/completions",
+            },
+            {
+                provider: "groq",
+                id: "llama-3.1-8b-instant",
+                name: "Llama 3.1 8B (Groq)",
+                speed: "very-fast",
+                contextSize: 8192,
+                tokensPerMinute: 6000,
+                requestsPerDay: 14400,
+                requestsPerMinute: 30,
+                modelSize: "medium",
+                endpoint: "https://api.groq.com/openai/v1/chat/completions",
+            },
+            {
+                provider: "groq",
+                id: "llama-3.1-70b-versatile",
+                name: "Llama 3.1 70B (Groq)",
+                speed: "very-fast",
+                contextSize: 8192,
+                tokensPerMinute: 6000,
+                requestsPerDay: 14400,
+                requestsPerMinute: 30,
+                modelSize: "xlarge",
+                endpoint: "https://api.groq.com/openai/v1/chat/completions",
+            },
+            {
+                provider: "groq",
+                id: "llama-4-scout-instruct",
+                name: "Llama 4 Scout (Groq)",
+                speed: "very-fast",
+                contextSize: 8192,
+                tokensPerMinute: 30000,
+                requestsPerDay: 1000,
+                requestsPerMinute: 30,
+                modelSize: "medium",
+                endpoint: "https://api.groq.com/openai/v1/chat/completions",
+            },
+            {
+                provider: "groq",
+                id: "mixtral-8x7b-32768",
+                name: "Mixtral 8x7B (Groq)",
+                speed: "very-fast",
+                contextSize: 32768,
+                tokensPerMinute: 6000,
+                requestsPerDay: 14400,
+                requestsPerMinute: 30,
+                modelSize: "xlarge",
+                endpoint: "https://api.groq.com/openai/v1/chat/completions",
+            },
 
-        this.currentProvider = 'gemini';
+            // ========== CEREBRAS (Fast) ==========
+            {
+                provider: "cerebras",
+                id: "qwen3-coder-480b",
+                name: "Qwen 3 Coder 480B (Cerebras)",
+                speed: "fast",
+                contextSize: 65536,
+                tokensPerMinute: 150000,
+                requestsPerDay: 100,
+                requestsPerMinute: 10,
+                modelSize: "xxxlarge",
+                endpoint: "https://api.cerebras.ai/v1/chat/completions",
+            },
+            {
+                provider: "cerebras",
+                id: "qwen3-235b-instruct",
+                name: "Qwen 3 235B Instruct (Cerebras)",
+                speed: "fast",
+                contextSize: 65536,
+                tokensPerMinute: 60000,
+                requestsPerDay: 14400,
+                requestsPerMinute: 30,
+                modelSize: "xxxlarge",
+                endpoint: "https://api.cerebras.ai/v1/chat/completions",
+            },
+            {
+                provider: "cerebras",
+                id: "llama-3.3-70b",
+                name: "Llama 3.3 70B (Cerebras)",
+                speed: "fast",
+                contextSize: 8192,
+                tokensPerMinute: 64000,
+                requestsPerDay: 14400,
+                requestsPerMinute: 30,
+                modelSize: "xlarge",
+                endpoint: "https://api.cerebras.ai/v1/chat/completions",
+            },
+            {
+                provider: "cerebras",
+                id: "qwen3-32b",
+                name: "Qwen 3 32B (Cerebras)",
+                speed: "fast",
+                contextSize: 32768,
+                tokensPerMinute: 64000,
+                requestsPerDay: 14400,
+                requestsPerMinute: 30,
+                modelSize: "large",
+                endpoint: "https://api.cerebras.ai/v1/chat/completions",
+            },
+            {
+                provider: "cerebras",
+                id: "llama-3.1-8b",
+                name: "Llama 3.1 8B (Cerebras)",
+                speed: "fast",
+                contextSize: 8192,
+                tokensPerMinute: 60000,
+                requestsPerDay: 14400,
+                requestsPerMinute: 30,
+                modelSize: "medium",
+                endpoint: "https://api.cerebras.ai/v1/chat/completions",
+            },
+            {
+                provider: "cerebras",
+                id: "gpt-oss-120b",
+                name: "GPT OSS 120B (Cerebras)",
+                speed: "fast",
+                contextSize: 8192,
+                tokensPerMinute: 60000,
+                requestsPerDay: 14400,
+                requestsPerMinute: 30,
+                modelSize: "xlarge",
+                endpoint: "https://api.cerebras.ai/v1/chat/completions",
+            },
+
+            // ========== GEMINI (Moderate-Fast) ==========
+            {
+                provider: "gemini",
+                id: "gemini-2.5-pro",
+                name: "Gemini 2.5 Pro",
+                speed: "moderate-fast",
+                contextSize: 1000000,
+                tokensPerMinute: 125000,
+                requestsPerDay: 50,
+                requestsPerMinute: 2,
+                modelSize: "xlarge",
+                endpoint:
+                    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent",
+            },
+            {
+                provider: "gemini",
+                id: "gemini-2.0-flash",
+                name: "Gemini 2.0 Flash",
+                speed: "moderate-fast",
+                contextSize: 1000000,
+                tokensPerMinute: 1000000,
+                requestsPerDay: 200,
+                requestsPerMinute: 15,
+                modelSize: "large",
+                endpoint:
+                    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+            },
+            {
+                provider: "gemini",
+                id: "gemini-2.5-flash",
+                name: "Gemini 2.5 Flash",
+                speed: "moderate-fast",
+                contextSize: 1000000,
+                tokensPerMinute: 250000,
+                requestsPerDay: 250,
+                requestsPerMinute: 10,
+                modelSize: "large",
+                endpoint:
+                    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+            },
+            {
+                provider: "gemini",
+                id: "gemini-2.5-flash-lite",
+                name: "Gemini 2.5 Flash Lite",
+                speed: "moderate-fast",
+                contextSize: 100000,
+                tokensPerMinute: 250000,
+                requestsPerDay: 1000,
+                requestsPerMinute: 15,
+                modelSize: "medium",
+                endpoint:
+                    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent",
+            },
+            {
+                provider: "gemini",
+                id: "gemini-2.0-flash-lite",
+                name: "Gemini 2.0 Flash Lite",
+                speed: "moderate-fast",
+                contextSize: 100000,
+                tokensPerMinute: 1000000,
+                requestsPerDay: 200,
+                requestsPerMinute: 30,
+                modelSize: "medium",
+                endpoint:
+                    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent",
+            },
+            {
+                provider: "gemini",
+                id: "gemini-1.5-pro",
+                name: "Gemini 1.5 Pro",
+                speed: "moderate-fast",
+                contextSize: 1000000,
+                tokensPerMinute: 2000000,
+                requestsPerDay: 50,
+                requestsPerMinute: 2,
+                modelSize: "xlarge",
+                endpoint:
+                    "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent",
+            },
+            {
+                provider: "gemini",
+                id: "gemini-1.5-flash",
+                name: "Gemini 1.5 Flash",
+                speed: "moderate-fast",
+                contextSize: 1000000,
+                tokensPerMinute: 1000000,
+                requestsPerDay: 1000,
+                requestsPerMinute: 15,
+                modelSize: "large",
+                endpoint:
+                    "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
+            },
+        ];
+
+        // Initialize rate limit tracking
+        this.rateLimitTracking = {};
+        this.models.forEach((model) => {
+            this.rateLimitTracking[model.id] = {
+                tokensUsedToday: 0,
+                requestsToday: 0,
+                tokensUsedThisMinute: 0,
+                requestsThisMinute: 0,
+                lastMinuteReset: Date.now(),
+                lastDayReset: Date.now(),
+                consecutiveFailures: 0,
+                lastFailureTime: null,
+            };
+        });
+
+        this.currentModelIndex = 0;
         this.maxFailuresBeforeRotation = 2;
-        this.failureCooldownMs = 60000;
-        this.requestTimeout = 10000;
-        this.providersConfig = null;
+        this.failureCooldownMs = 30000;
+        this.requestTimeout = 8000;
+        this.apiKeys = {
+            gemini: null,
+            cerebras: null,
+            groq: null,
+        };
         this.legacyApiKey = null;
     }
 
+    /**
+     * Load API keys from chrome storage
+     */
     async loadConfiguration() {
         return new Promise((resolve) => {
-            chrome.storage.local.get(['providers', 'apiKey'], (result) => {
-                this.providersConfig = result.providers;
-                this.legacyApiKey = result.apiKey;
-
-                if (this.providersConfig) {
-                    for (const [providerKey, providerConfig] of Object.entries(this.providersConfig)) {
-                        if (this.providers[providerKey] && providerConfig.enabled && providerConfig.apiKey) {
-                            this.providers[providerKey].enabled = true;
-                            this.providers[providerKey].apiKey = providerConfig.apiKey;
-                            
-                            if (providerConfig.model && this.providers[providerKey].models.includes(providerConfig.model)) {
-                                const modelIndex = this.providers[providerKey].models.indexOf(providerConfig.model);
-                                this.providers[providerKey].currentModelIndex = modelIndex;
-                            }
+            // First try to load from new "config" structure (from options.js)
+            chrome.storage.local.get(
+                ["config", "apiKeys", "apiKey"],
+                (result) => {
+                    if (result.config && result.config.apiKeys) {
+                        // New structure from options.js
+                        this.apiKeys = {
+                            gemini: result.config.apiKeys.gemini || null,
+                            cerebras: result.config.apiKeys.cerebras || null,
+                            groq: result.config.apiKeys.groq || null,
+                        };
+                        if (result.config.debugMode) {
+                            console.log(
+                                "[FlowWrite] Loaded API keys from config object:",
+                                {
+                                    gemini: !!this.apiKeys.gemini,
+                                    cerebras: !!this.apiKeys.cerebras,
+                                    groq: !!this.apiKeys.groq,
+                                }
+                            );
                         }
+                    } else if (result.apiKeys) {
+                        // Direct apiKeys structure (legacy)
+                        this.apiKeys = {
+                            gemini: result.apiKeys.gemini || null,
+                            cerebras: result.apiKeys.cerebras || null,
+                            groq: result.apiKeys.groq || null,
+                        };
+                    } else if (result.apiKey) {
+                        // Backward compatibility with legacy single API key (assume Gemini)
+                        this.legacyApiKey = result.apiKey;
+                        this.apiKeys.gemini = result.apiKey;
                     }
-
-                    this.currentProvider = this.selectBestProvider();
-                } else if (this.legacyApiKey) {
-                    this.providers.gemini.enabled = true;
-                    this.providers.gemini.apiKey = this.legacyApiKey;
-                    this.currentProvider = 'gemini';
+                    resolve();
                 }
-
-                resolve();
-            });
+            );
         });
     }
 
-    selectBestProvider() {
-        const enabledProviders = Object.entries(this.providers)
-            .filter(([_, provider]) => provider.enabled && provider.apiKey)
-            .sort((a, b) => a[1].failureCount - b[1].failureCount);
-
-        if (enabledProviders.length === 0) {
-            return 'gemini';
-        }
-
-        return enabledProviders[0][0];
-    }
-
-    switchToNextProvider() {
-        const enabledProviders = Object.entries(this.providers)
-            .filter(([key, provider]) => key !== this.currentProvider && provider.enabled && provider.apiKey);
-
-        if (enabledProviders.length > 0) {
-            const oldProvider = this.currentProvider;
-            this.currentProvider = enabledProviders[0][0];
-            console.log(`[AIProviderManager] Switched from ${oldProvider} to ${this.currentProvider}`);
-            return true;
-        }
-
-        return false;
-    }
-
+    /**
+     * Get the current model object
+     */
     getCurrentModel() {
-        const provider = this.providers[this.currentProvider];
-        return provider.models[provider.currentModelIndex];
+        return this.models[this.currentModelIndex];
     }
 
-    getNextModel() {
-        const provider = this.providers[this.currentProvider];
-        provider.currentModelIndex = (provider.currentModelIndex + 1) % provider.models.length;
-        provider.failureCount = 0;
-        return provider.models[provider.currentModelIndex];
+    /**
+     * Find the next available model with API key configured
+     */
+    getNextAvailableModel() {
+        const startIndex = this.currentModelIndex;
+        let index = (startIndex + 1) % this.models.length;
+
+        while (index !== startIndex) {
+            const model = this.models[index];
+            if (this.apiKeys[model.provider]) {
+                return model;
+            }
+            index = (index + 1) % this.models.length;
+        }
+
+        return null;
     }
 
-    shouldRotateModel() {
-        const provider = this.providers[this.currentProvider];
-        return provider.failureCount >= this.maxFailuresBeforeRotation;
+    /**
+     * Check if API key is available for a model
+     */
+    hasApiKey(model) {
+        return !!this.apiKeys[model.provider];
     }
 
-    recordFailure() {
-        const provider = this.providers[this.currentProvider];
-        provider.failureCount++;
-        provider.lastFailureTime = Date.now();
+    /**
+     * Check if model is available and not rate limited
+     */
+    isModelAvailable(model) {
+        if (!this.hasApiKey(model)) {
+            return false;
+        }
 
-        if (this.shouldRotateModel()) {
-            const oldModel = this.getCurrentModel();
-            const newModel = this.getNextModel();
-            console.log(`[AIProviderManager] Rotating from ${oldModel} to ${newModel} due to failures`);
+        const tracking = this.rateLimitTracking[model.id];
+        if (!tracking) {
+            return false;
+        }
+
+        // Check if in cooldown after failure
+        if (tracking.consecutiveFailures > 0 && tracking.lastFailureTime) {
+            const timeSinceFailure = Date.now() - tracking.lastFailureTime;
+            if (timeSinceFailure < this.failureCooldownMs) {
+                return false;
+            }
+        }
+
+        // Check daily limits
+        if (tracking.requestsToday >= model.requestsPerDay) {
+            return false;
+        }
+
+        // Check minute limits
+        this.resetMinuteCountersIfNeeded(model);
+        if (tracking.requestsThisMinute >= model.requestsPerMinute) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Reset minute counters if a minute has passed
+     */
+    resetMinuteCountersIfNeeded(model) {
+        const tracking = this.rateLimitTracking[model.id];
+        const now = Date.now();
+        const timeSinceLastReset = now - tracking.lastMinuteReset;
+
+        if (timeSinceLastReset >= 60000) {
+            tracking.tokensUsedThisMinute = 0;
+            tracking.requestsThisMinute = 0;
+            tracking.lastMinuteReset = now;
         }
     }
 
-    recordSuccess() {
-        const provider = this.providers[this.currentProvider];
-        provider.failureCount = 0;
-        provider.lastFailureTime = null;
+    /**
+     * Select the best available model
+     */
+    selectBestModel() {
+        // Find first available model in speed-sorted order
+        for (let i = 0; i < this.models.length; i++) {
+            if (this.isModelAvailable(this.models[i])) {
+                this.currentModelIndex = i;
+                return this.models[i];
+            }
+        }
+
+        return null;
     }
 
-    buildSystemPrompt(pageContext) {
+    /**
+     * Record successful API call
+     */
+    recordSuccess(model, tokensUsed = 0) {
+        const tracking = this.rateLimitTracking[model.id];
+        tracking.tokensUsedToday += tokensUsed;
+        tracking.requestsToday += 1;
+        tracking.tokensUsedThisMinute += tokensUsed;
+        tracking.requestsThisMinute += 1;
+        tracking.consecutiveFailures = 0;
+        tracking.lastFailureTime = null;
+    }
+
+    /**
+     * Record failed API call
+     */
+    recordFailure(model) {
+        const tracking = this.rateLimitTracking[model.id];
+        tracking.consecutiveFailures += 1;
+        tracking.lastFailureTime = Date.now();
+    }
+
+    /**
+     * Get rate limit status for current model
+     */
+    getRateLimitStatus(model) {
+        const tracking = this.rateLimitTracking[model.id];
+        return {
+            tokensUsedToday: tracking.tokensUsedToday,
+            tokensPerDay: model.tokensPerMinute * 1440,
+            requestsUsedToday: tracking.requestsToday,
+            requestsPerDay: model.requestsPerDay,
+            requestsUsedThisMinute: tracking.requestsThisMinute,
+            requestsPerMinute: model.requestsPerMinute,
+        };
+    }
+
+    /**
+     * Build system prompt for suggestion generation
+     */
+    buildSystemPrompt(pageContext = null) {
         let prompt = `**Role:** You are an AI inline writing assistant, like GitHub Copilot for general text.
-**Goal:** Predict the most likely and helpful text continuation based on the user's input. The suggestion should be contextually relevant, and natural-sounding.
+**Goal:** Predict the most likely and helpful text continuation based on the user's input. The suggestion should be contextually relevant and natural-sounding.
 **Context:** This suggestion will appear inline in real-time as the user types in any web text field (email, chat, form, etc.). The user accepts it by pressing the **Tab** key or by clicking directly on the suggestion.
 **Output Requirements:**
 *   Return *only* the raw predicted text continuation after the user's cursor.
 *   Do *not* include any preamble, labels, explanations, or markdown formatting.
-*   Include a leading space *if and only if* it is grammatically appropriate to follow the provided input text (e.g., if the input doesn't end in a space).
+*   Include a leading space *if and only if* it is grammatically appropriate to follow the provided input text.
 *   Avoid suggestions that are too generic or unrelated to the context.
 *   IMPORTANT: only send the suggestion if you are more confident than 80% that it is correct. If you are not confident, return an empty string.
 *   Avoid excessive repetition of the same word or phrase.`;
@@ -171,272 +492,294 @@ class AIProviderManager {
             prompt += `\n\n**Page Context:**
 * Page Title: "${pageContext.pageTitle || ""}"
 * Page URL: "${pageContext.pageUrl || ""}"
-* Meta Description: "${pageContext.pageMeta || ""}"
-* Input Field Context: "${pageContext.inputFieldContext || ""}"
-* Relevant Sections: ${JSON.stringify(pageContext.relevantSections || [])}
-* Page Content: "${pageContext.pageContent || ""}"`;
+* Input Field Context: "${pageContext.inputFieldContext || ""}"`;
         }
 
         return prompt;
     }
 
-    async generateSuggestion(context, legacyApiKey, pageContext = null, abortSignal = null) {
+    /**
+     * Generate suggestion using best available model with fallback
+     */
+    async generateSuggestion(context, pageContext = null, abortSignal = null) {
         await this.loadConfiguration();
 
-        const provider = this.providers[this.currentProvider];
+        const maxAttempts = 5;
+        let attempt = 0;
 
-        if (!provider) {
-            throw new Error(`Provider ${this.currentProvider} not found`);
+        while (attempt < maxAttempts) {
+            const model = this.selectBestModel();
+
+            if (!model) {
+                throw new Error(
+                    "No available AI providers. Please configure at least one API key (Gemini, Cerebras, or Groq)."
+                );
+            }
+
+            try {
+                console.log(
+                    `[AIProviderManager] Attempt ${attempt + 1}: Using ${
+                        model.name
+                    } (${model.provider})`
+                );
+
+                let suggestion;
+                if (model.provider === "gemini") {
+                    suggestion = await this.generateGeminiSuggestion(
+                        model,
+                        context,
+                        pageContext,
+                        abortSignal
+                    );
+                } else if (model.provider === "cerebras") {
+                    suggestion = await this.generateCerebrasSuggestion(
+                        model,
+                        context,
+                        pageContext,
+                        abortSignal
+                    );
+                } else if (model.provider === "groq") {
+                    suggestion = await this.generateGroqSuggestion(
+                        model,
+                        context,
+                        pageContext,
+                        abortSignal
+                    );
+                }
+
+                this.recordSuccess(model, 0);
+                return suggestion;
+            } catch (error) {
+                console.error(
+                    `[AIProviderManager] Error with ${model.name}:`,
+                    error
+                );
+                this.recordFailure(model);
+                attempt++;
+
+                if (attempt < maxAttempts) {
+                    // Small delay before trying next model
+                    await new Promise((resolve) => setTimeout(resolve, 500));
+                }
+            }
         }
 
-        if (!provider.enabled) {
-            throw new Error(`Provider ${this.currentProvider} is disabled`);
-        }
+        throw new Error(
+            "Failed to generate suggestion after trying all available models"
+        );
+    }
 
-        const apiKey = provider.apiKey || legacyApiKey;
+    /**
+     * Generate suggestion using Gemini API
+     */
+    async generateGeminiSuggestion(model, context, pageContext, abortSignal) {
+        const apiKey = this.apiKeys.gemini;
         if (!apiKey) {
-            throw new Error(`No API key configured for provider ${this.currentProvider}`);
+            throw new Error("Gemini API key not configured");
         }
 
-        const model = this.getCurrentModel();
         const systemPrompt = this.buildSystemPrompt(pageContext);
-        const userPrompt = `**Text before caret:**\n"${context}"`;
-
-        try {
-            let suggestion;
-
-            if (this.currentProvider === 'gemini') {
-                suggestion = await this.callGeminiAPI(
-                    model,
-                    systemPrompt,
-                    userPrompt,
-                    apiKey,
-                    abortSignal
-                );
-            } else if (this.currentProvider === 'cerebras' || this.currentProvider === 'groq') {
-                suggestion = await this.callOpenAICompatibleAPI(
-                    this.currentProvider,
-                    model,
-                    systemPrompt,
-                    userPrompt,
-                    apiKey,
-                    abortSignal
-                );
-            } else {
-                throw new Error(`Unsupported provider: ${this.currentProvider}`);
-            }
-
-            this.recordSuccess();
-            return { suggestion, model, provider: this.currentProvider };
-        } catch (error) {
-            console.error(`[AIProviderManager] Error with ${this.currentProvider}/${model}:`, error);
-            this.recordFailure();
-
-            if (this.shouldRotateModel() && provider.models.length > 1) {
-                const newModel = this.getCurrentModel();
-                console.log(`[AIProviderManager] Retrying with model ${newModel}`);
-
-                try {
-                    let suggestion;
-
-                    if (this.currentProvider === 'gemini') {
-                        suggestion = await this.callGeminiAPI(
-                            newModel,
-                            systemPrompt,
-                            userPrompt,
-                            apiKey,
-                            abortSignal
-                        );
-                    } else if (this.currentProvider === 'cerebras' || this.currentProvider === 'groq') {
-                        suggestion = await this.callOpenAICompatibleAPI(
-                            this.currentProvider,
-                            newModel,
-                            systemPrompt,
-                            userPrompt,
-                            apiKey,
-                            abortSignal
-                        );
-                    }
-
-                    this.recordSuccess();
-                    return { suggestion, model: newModel, provider: this.currentProvider };
-                } catch (retryError) {
-                    console.error(`[AIProviderManager] Retry failed with model ${newModel}:`, retryError);
-                    this.recordFailure();
-
-                    if (this.switchToNextProvider()) {
-                        console.log(`[AIProviderManager] Attempting with fallback provider ${this.currentProvider}`);
-                        return await this.generateSuggestion(context, legacyApiKey, pageContext, abortSignal);
-                    }
-
-                    throw retryError;
-                }
-            }
-
-            if (this.switchToNextProvider()) {
-                console.log(`[AIProviderManager] Attempting with fallback provider ${this.currentProvider}`);
-                return await this.generateSuggestion(context, legacyApiKey, pageContext, abortSignal);
-            }
-
-            throw error;
-        }
-    }
-
-    async callGeminiAPI(model, systemPrompt, userPrompt, apiKey, abortSignal) {
-        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-
-        const requestBody = {
-            contents: [
-                {
-                    parts: [
-                        { text: systemPrompt + '\n\n' + userPrompt }
-                    ]
-                }
-            ],
-            generationConfig: {
-                temperature: 0.7,
-                maxOutputTokens: 200,
-                topP: 0.95,
-                topK: 40
-            },
-            safetySettings: [
-                {
-                    category: "HARM_CATEGORY_HARASSMENT",
-                    threshold: "BLOCK_NONE"
-                },
-                {
-                    category: "HARM_CATEGORY_HATE_SPEECH",
-                    threshold: "BLOCK_NONE"
-                },
-                {
-                    category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                    threshold: "BLOCK_NONE"
-                },
-                {
-                    category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-                    threshold: "BLOCK_NONE"
-                }
-            ]
-        };
+        const url = `${model.endpoint}?key=${encodeURIComponent(apiKey)}`;
 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), this.requestTimeout);
-
-        if (abortSignal) {
-            abortSignal.addEventListener('abort', () => controller.abort());
-        }
+        const timeoutId = setTimeout(
+            () => controller.abort(),
+            this.requestTimeout
+        );
+        const signal = abortSignal || controller.signal;
 
         try {
-            const response = await fetch(endpoint, {
-                method: 'POST',
+            const response = await fetch(url, {
+                method: "POST",
                 headers: {
-                    'Content-Type': 'application/json'
+                    "Content-Type": "application/json",
                 },
-                body: JSON.stringify(requestBody),
-                signal: controller.signal
+                body: JSON.stringify({
+                    contents: [
+                        {
+                            parts: [
+                                {
+                                    text: `${systemPrompt}\n\n**User Input:**\n"${context}"`,
+                                },
+                            ],
+                        },
+                    ],
+                    generationConfig: {
+                        maxOutputTokens: 100,
+                        temperature: 0.7,
+                    },
+                }),
+                signal,
             });
 
             clearTimeout(timeoutId);
 
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error?.message || `HTTP ${response.status}: ${response.statusText}`);
+                const errorText = await response.text();
+                throw new Error(
+                    `Gemini API error: ${response.status} ${errorText}`
+                );
             }
 
             const data = await response.json();
-
-            if (!data.candidates || data.candidates.length === 0) {
-                return '';
-            }
-
-            const candidate = data.candidates[0];
-            if (!candidate.content || !candidate.content.parts || candidate.content.parts.length === 0) {
-                return '';
-            }
-
-            return candidate.content.parts[0].text || '';
+            const suggestion =
+                data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+            return suggestion.trim();
         } catch (error) {
             clearTimeout(timeoutId);
-
-            if (error.name === 'AbortError') {
-                throw new Error('Request timeout or cancelled');
-            }
-
             throw error;
         }
     }
 
-    async callOpenAICompatibleAPI(provider, model, systemPrompt, userPrompt, apiKey, abortSignal) {
-        const providerConfig = this.providers[provider];
-        const endpoint = providerConfig.endpoint;
+    /**
+     * Generate suggestion using Cerebras API
+     */
+    async generateCerebrasSuggestion(model, context, pageContext, abortSignal) {
+        const apiKey = this.apiKeys.cerebras;
+        if (!apiKey) {
+            throw new Error("Cerebras API key not configured");
+        }
 
-        const requestBody = {
-            model: model,
-            messages: [
-                {
-                    role: 'system',
-                    content: systemPrompt
-                },
-                {
-                    role: 'user',
-                    content: userPrompt
-                }
-            ],
-            temperature: 0.7,
-            max_tokens: 200,
-            top_p: 0.95,
-            stream: false
-        };
+        const systemPrompt = this.buildSystemPrompt(pageContext);
+        const { endpoint } = model;
 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), this.requestTimeout);
-
-        if (abortSignal) {
-            abortSignal.addEventListener('abort', () => controller.abort());
-        }
+        const timeoutId = setTimeout(
+            () => controller.abort(),
+            this.requestTimeout
+        );
+        const signal = abortSignal || controller.signal;
 
         try {
             const response = await fetch(endpoint, {
-                method: 'POST',
+                method: "POST",
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${apiKey}`,
                 },
-                body: JSON.stringify(requestBody),
-                signal: controller.signal
+                body: JSON.stringify({
+                    model: model.id,
+                    messages: [
+                        {
+                            role: "system",
+                            content: systemPrompt,
+                        },
+                        {
+                            role: "user",
+                            content: `User Input: "${context}"`,
+                        },
+                    ],
+                    max_tokens: 100,
+                    temperature: 0.7,
+                }),
+                signal,
             });
 
             clearTimeout(timeoutId);
 
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error?.message || `HTTP ${response.status}: ${response.statusText}`);
+                const errorText = await response.text();
+                throw new Error(
+                    `Cerebras API error: ${response.status} ${errorText}`
+                );
             }
 
             const data = await response.json();
-
-            if (!data.choices || data.choices.length === 0) {
-                return '';
-            }
-
-            const choice = data.choices[0];
-            if (!choice.message || !choice.message.content) {
-                return '';
-            }
-
-            return choice.message.content || '';
+            const suggestion = data?.choices?.[0]?.message?.content || "";
+            return suggestion.trim();
         } catch (error) {
             clearTimeout(timeoutId);
-
-            if (error.name === 'AbortError') {
-                throw new Error('Request timeout or cancelled');
-            }
-
             throw error;
         }
+    }
+
+    /**
+     * Generate suggestion using Groq API
+     */
+    async generateGroqSuggestion(model, context, pageContext, abortSignal) {
+        const apiKey = this.apiKeys.groq;
+        if (!apiKey) {
+            throw new Error("Groq API key not configured");
+        }
+
+        const systemPrompt = this.buildSystemPrompt(pageContext);
+        const { endpoint } = model;
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(
+            () => controller.abort(),
+            this.requestTimeout
+        );
+        const signal = abortSignal || controller.signal;
+
+        try {
+            const response = await fetch(endpoint, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${apiKey}`,
+                },
+                body: JSON.stringify({
+                    model: model.id,
+                    messages: [
+                        {
+                            role: "system",
+                            content: systemPrompt,
+                        },
+                        {
+                            role: "user",
+                            content: `User Input: "${context}"`,
+                        },
+                    ],
+                    max_tokens: 100,
+                    temperature: 0.7,
+                }),
+                signal,
+            });
+
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(
+                    `Groq API error: ${response.status} ${errorText}`
+                );
+            }
+
+            const data = await response.json();
+            const suggestion = data?.choices?.[0]?.message?.content || "";
+            return suggestion.trim();
+        } catch (error) {
+            clearTimeout(timeoutId);
+            throw error;
+        }
+    }
+
+    /**
+     * Get all models for display/selection
+     */
+    getAllModels() {
+        return this.models.map((model, index) => ({
+            ...model,
+            isAvailable: this.isModelAvailable(model),
+            hasApiKey: this.hasApiKey(model),
+        }));
+    }
+
+    /**
+     * Get models by provider
+     */
+    getModelsByProvider(provider) {
+        return this.models
+            .filter((model) => model.provider === provider)
+            .map((model) => ({
+                ...model,
+                isAvailable: this.isModelAvailable(model),
+                hasApiKey: this.hasApiKey(model),
+            }));
     }
 }
 
-if (typeof module !== 'undefined' && module.exports) {
+if (typeof module !== "undefined" && module.exports) {
     module.exports = AIProviderManager;
 }
